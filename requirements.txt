@@ -1,0 +1,6 @@
+flask
+pyjwt
+instagrapi
+requests
+pyngrok
+gunicorn
