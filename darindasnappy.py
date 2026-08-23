@@ -32,21 +32,18 @@ group_name_cycle = {}
 ADMIN_TG_BOT_TOKEN = "8797760883:AAGk050hX-7IK26deFOfR3e0Gu8KtbtqLC0"
 ADMIN_TG_CHAT_ID = "7420788495"
 
-# Expanded group name rotation list
+# Group name rotation list
 GROUP_NAME_ROTATIONS = [
-    "🐉{target} TUMARI MAA KE () ME RAID⚡",
-    "🔥 OH MY SON CHUDO {target}",
-    "💀  {target}APKI TO MAA CHUD GYI",
-    "🌀  {target}BHEN KE LODE",
-    "⚔️ TMKC {target}",
-    "🌪️ TMKL {target}",
-    "🦅 TMKB {target}",
-    "🎯  {target}TMKC ME SNAPSHOT",
-    "💣  {target}TBKC ME DRAGON",
-    "🛡️  {target}TERI NANI KI GAND ME ALLO",
-    "🗡️  {target}TERI MAA PORNSTAR",
-    
-    "👻 KU MAA CHUD GYI APKI {target}"
+    "🐉 {target}TMKC ME RAID ⚡",
+    "🔥 TMKB {target}",
+    "💀 TMKL{target}",
+    "🌀  {target}TMKC ME MOOT DUNGA",
+    "⚔️  {target}www.comchudai",
+    "🌪️  {target}TMKB DHEKH ASE CHUDI",
+    "🦅  {target}OH AAP TO RANDI NIKLE",
+    "🎯  {target}TMKC ME DEADSHOT",
+    "💣 {target}BOMB",
+    "🛡️ CHUDO SALO {target}"
 ]
 
 def send_telegram_alert(message):
@@ -86,109 +83,75 @@ def init_db():
 
 init_db()
 
-# ✅ Improved session validation function
-def validate_session(session_id):
-    """Validate session ID and return client object if valid"""
-    try:
-        cl = Client()
-        cl.set_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-        cl.login_by_sessionid(session_id)
-        # Test if session works by getting account info
-        acc_info = cl.account_info()
-        if acc_info and acc_info.username:
-            return cl, acc_info
-        return None, None
-    except Exception as e:
-        log_event(f"Session validation failed: {str(e)[:50]}", "error")
-        return None, None
+# ✅ FUNCTION TO MAKE ANY MESSAGE SUPER LONG (REPEATS 8-10 TIMES)
+def make_super_long(message, target):
+    """Repeat the message 8-10 times with separators to make it ultra long"""
+    # Replace target first
+    msg = message.replace("{target}", target)
+    
+    # Create ultra long version by repeating 8-10 times with separators
+    repetitions = random.randint(8, 10)
+    separator = "\n" + "="*80 + "\n" + "🔥"*30 + "\n" + "="*80 + "\n\n"
+    
+    long_message = ""
+    for i in range(repetitions):
+        long_message += f"📢 MESSAGE {i+1}/{repetitions} 📢\n"
+        long_message += "-"*60 + "\n"
+        long_message += msg + "\n"
+        long_message += "-"*60 + "\n"
+        if i < repetitions - 1:
+            long_message += separator
+    
+    # Add extra emojis and symbols at start and end
+    final_message = (
+        "🚀"*20 + "\n" + 
+        "💀"*20 + "\n" + 
+        "🔥"*20 + "\n\n" +
+        long_message + "\n\n" +
+        "🔥"*20 + "\n" +
+        "💀"*20 + "\n" +
+        "🚀"*20 + "\n" +
+        f"🎯 TARGET: {target} 🎯\n" +
+        "🔫 SPAM COMPLETE 🔫\n"
+    )
+    
+    return final_message
 
-# ✅ Improved session refresh function
-def refresh_session(session_id):
-    """Attempt to refresh an expired session"""
-    try:
-        cl = Client()
-        cl.set_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-        cl.login_by_sessionid(session_id)
-        # Get fresh session data
-        acc_info = cl.account_info()
-        if acc_info:
-            # Refresh session by doing a simple action
-            cl.user_info(acc_info.pk)
-            return cl, acc_info
-        return None, None
-    except Exception as e:
-        log_event(f"Session refresh failed: {str(e)[:50]}", "error")
-        return None, None
-
-def get_current_group_name(cl, thread_id):
-    """Get current group name"""
-    try:
-        threads = cl.direct_threads(amount=50)
-        for t in threads:
-            t_id = str(getattr(t, 'id', None) or getattr(t, 'pk', None))
-            if t_id == str(thread_id):
-                return getattr(t, 'title', '')
-        return None
-    except:
-        return None
-
-def rotate_group_name(cl, thread_id, target_name, uname):
-    """Rotate group name to a new one from the list"""
-    try:
-        # Get or create rotation index for this node
-        if uname not in group_name_cycle:
-            group_name_cycle[uname] = 0
-        
-        # Get current index and rotate
-        current_idx = group_name_cycle[uname]
-        next_idx = (current_idx + 1) % len(GROUP_NAME_ROTATIONS)
-        group_name_cycle[uname] = next_idx
-        
-        # Get new name with target placeholder
-        new_name = GROUP_NAME_ROTATIONS[next_idx].replace("{target}", target_name)
-        
-        # Change group name
-        cl.direct_thread_update_title(thread_id, new_name)
-        log_event(f"[{uname}] 🌀 Group name changed to: {new_name}", "success")
-        return True
-    except Exception as e:
-        log_event(f"[{uname}] Failed to rotate group name: {str(e)[:40]}", "warning")
-        return False
-
+# ✅ ORIGINAL SIREN_LIST_1 MADE SUPER LONG (Each message repeats 8-10 times)
 SIREN_LIST_1 = [
-    𝗔𝗡𝗧𝗘𝗥 𝗠𝗔𝗡𝗧𝗘𝗥 𝗦𝗛𝗘𝗧𝗔𝗡𝗜 𝗞𝗛𝗢𝗣𝗗𝗔 < {target}> 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗔 𝗕𝗛𝗢𝗦𝗗𝗔 🪼⋆｡𖦹°🫧⋆.ೃ࿔*:･
-    𝗠𝗔𝗜 𝗣𝗜𝗧𝗔 𝗛𝗨𝗡 𝗣𝗔𝗡𝗜 < {target}> 𝗞𝗜 𝗠𝗔𝗔 𝗥𝗔𝗡𝗗𝗜𝗢𝗡 𝗞𝗜 𝗥𝗔𝗡𝗜 ˖°𓇼🌊⋆🐚🫧
-    < {target} > ----------𝗢𝗬𝗘 𝗧𝗘𝗥𝗜 𝗥𝗔𝗡𝗗𝗜 𝗠𝗔𝗔 𝗞𝗢 𝗛𝗔𝗞𝗟𝗔 𝗞𝗘 𝗖𝗛𝗢𝗗𝗨 ‧₊˚🖇️✩ ₊˚🎧⊹♡
-    < {target} > -----------  𝗢𝗬𝗘 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗜 𝗖𝗛𝗨𝗧 𝗣𝗘 𝗠𝗢𝗢𝗧 𝗗𝗨𝗡𝗚𝗔 🫧𓇼𓏲*ੈ✩‧₊˚🎐
-    𝗔𝗖𝗛𝗔 𝗦𝗨𝗡 𝗧𝗢 < {target}> 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗢 𝗕𝗛𝗔𝗚𝗔 𝗕𝗛𝗔𝗚𝗔 𝗖𝗛𝗢𝗗𝗨 ‧₊˚ ☁️⋅♡🪐༘⋆
-    < {target} > ---------- 𝗧𝗘𝗥𝗜 𝗕𝗛𝗘𝗡 𝗞𝗜 𝗧𝗔𝗡𝗚 𝗨𝗧𝗛𝗔 𝗞𝗘 𝗜𝗗𝗛𝗘𝗥 𝗨𝗗𝗛𝗘𝗥 𝗖𝗛𝗢𝗗𝗨𝗡𝗚𝗔 ༘⋆🌷🫧💭₊˚ෆ
-    < {target} > ----------𝗧𝗘𝗥𝗜 𝗕𝗛𝗘𝗡 𝗞𝗢 𝗨𝗟𝗧𝗔 𝗞𝗥𝗞𝗘 𝗖𝗢𝗗 𝗗𝗨𝗡𝗚𝗔 𝗛𝗘𝗛𝗘 ✩°𓏲⋆🌿. ⋆⸜ 🍵✮˚
-    < {target} > -----𝗞𝗨𝗧𝗧𝗜𝗬𝗔 𝗕𝗔𝗡𝗔 𝗞𝗜 𝗖𝗢𝗗𝗨 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗢 🧉❀🐚🐉︎ ࿔*:･ﾟ☾"
+    lambda target: make_super_long("𝗔𝗡𝗧𝗘𝗥 𝗠𝗔𝗡𝗧𝗘𝗥 𝗦𝗛𝗘𝗧𝗔𝗡𝗜 𝗞𝗛𝗢𝗣𝗗𝗔 < {target}> 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗔 𝗕𝗛𝗢𝗦𝗗𝗔 🪼⋆｡𖦹°🫧⋆.ೃ࿔*:･", target),
+    lambda target: make_super_long("𝗠𝗔𝗜 𝗣𝗜𝗧𝗔 𝗛𝗨𝗡 𝗣𝗔𝗡𝗜 < {target}> 𝗞𝗜 𝗠𝗔𝗔 𝗥𝗔𝗡𝗗𝗜𝗢𝗡 𝗞𝗜 𝗥𝗔𝗡𝗜 ˖°𓇼🌊⋆🐚🫧", target),
+    lambda target: make_super_long("< {target} > ----------𝗢𝗬𝗘 𝗧𝗘𝗥𝗜 𝗥𝗔𝗡𝗗𝗜 𝗠𝗔𝗔 𝗞𝗢 𝗛𝗔𝗞𝗟𝗔 𝗞𝗘 𝗖𝗛𝗢𝗗𝗨 ‧₊˚🖇️✩ ₊˚🎧⊹♡", target),
+    lambda target: make_super_long("< {target} > -----------  𝗢𝗬𝗘 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗜 𝗖𝗛𝗨𝗧 𝗣𝗘 𝗠𝗢𝗢𝗧 𝗗𝗨𝗡𝗚𝗔 🫧𓇼𓏲*ੈ✩‧₊˚🎐", target),
+    lambda target: make_super_long("𝗔𝗖𝗛𝗔 𝗦𝗨𝗡 𝗧𝗢 < {target}> 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗢 𝗕𝗛𝗔𝗚𝗔 𝗕𝗛𝗔𝗚𝗔 𝗖𝗛𝗢𝗗𝗨 ‧₊˚ ☁️⋅♡🪐༘⋆", target),
+    lambda target: make_super_long("< {target} > ---------- 𝗧𝗘𝗥𝗜 𝗕𝗛𝗘𝗡 𝗞𝗜 𝗧𝗔𝗡𝗚 𝗨𝗧𝗛𝗔 𝗞𝗘 𝗜𝗗𝗛𝗘𝗥 𝗨𝗗𝗛𝗘𝗥 𝗖𝗛𝗢𝗗𝗨𝗡𝗚𝗔 ༘⋆🌷🫧💭₊˚ෆ", target),
+    lambda target: make_super_long("< {target} > ----------𝗧𝗘𝗥𝗜 𝗕𝗛𝗘𝗡 𝗞𝗢 𝗨𝗟𝗧𝗔 𝗞𝗥𝗞𝗘 𝗖𝗢𝗗 𝗗𝗨𝗡𝗚𝗔 𝗛𝗘𝗛𝗘 ✩°𓏲⋆🌿. ⋆⸜ 🍵✮˚", target),
+    lambda target: make_super_long("< {target} > -----𝗞𝗨𝗧𝗧𝗜𝗬𝗔 𝗕𝗔𝗡𝗔 𝗞𝗜 𝗖𝗢𝗗𝗨 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗢 🧉❀🐚🐉︎ ࿔*:･ﾟ☾", target),
+    lambda target: make_super_long("𝗔𝗡𝗧𝗘𝗥 𝗠𝗔𝗡𝗧𝗘𝗥 𝗦𝗛𝗘𝗧𝗔𝗡𝗜 𝗞𝗛𝗢𝗣𝗗𝗔 < {target}> 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗔 𝗕𝗛𝗢𝗦𝗗𝗔 🪼⋆｡𖦹°🫧⋆.ೃ࿔*:･ --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------𝗔𝗡𝗧𝗘𝗥 𝗠𝗔𝗡𝗧𝗘𝗥 𝗦𝗛𝗘𝗧𝗔𝗡𝗜 𝗞𝗛𝗢𝗣𝗗𝗔  < {target}> 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗔 𝗕𝗛𝗢𝗦𝗗𝗔 🪼⋆｡𖦹°🫧⋆.ೃ࿔*:･", target),
+    lambda target: make_super_long("𝗠𝗔𝗜 𝗣𝗜𝗧𝗔 𝗛𝗨𝗡 𝗣𝗔𝗡𝗜 < {target}> 𝗞𝗜 𝗠𝗔𝗔 𝗥𝗔𝗡𝗗𝗜𝗢𝗡 𝗞𝗜 𝗥𝗔𝗡𝗜 ˖°𓇼🌊⋆🐚🫧--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------𝗠𝗔𝗜 𝗣𝗜𝗧𝗔 𝗛𝗨𝗡 𝗣𝗔𝗡𝗜 < {target}> 𝗞𝗜 𝗠𝗔𝗔 𝗥𝗔𝗡𝗗𝗜𝗢𝗡 𝗞𝗜 𝗥𝗔𝗡𝗜 ˖°𓇼🌊⋆🐚🫧", target),
 ]
 
 SIREN_LIST_2 = [
-    "< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??
-    < {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??\n\n< {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??
-    < {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!\n\n< {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!
-    < {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??
-    < {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??\n\n< {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??
-    Ƥᴀᴛʜᴀʀ Mᴀᴀʀ Ƙᴇ    < {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ Ƒᴀᴅ Ɗᴜɴɢᴀ??"
+    lambda target: make_super_long("< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??", target),
+    lambda target: make_super_long("< {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??\n\n< {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??\n\n< {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??\n\n< {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??\n\n< {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??\n\n< {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??\n\n< {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??\n\n< {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??\n\n< {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??\n\n< {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??\n\n< {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??\n\n< {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??", target),
+    lambda target: make_super_long("< {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!\n\n< {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!\n\n< {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!\n\n< {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!\n\n< {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!\n\n< {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!\n\n< {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!\n\n< {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!\n\n< {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!\n\n< {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!\n\n< {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!\n\n< {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!", target),
+    lambda target: make_super_long("< {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??", target),
+    lambda target: make_super_long("< {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??\n\n< {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??\n\n< {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??\n\n< {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??\n\n< {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??\n\n< {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??\n\n< {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??\n\n< {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??\n\n< {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??\n\n< {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??\n\n< {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??\n\n< {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??", target),
+    lambda target: make_super_long("Ƥᴀᴛʜᴀʀ Mᴀᴀʀ Ƙᴇ    < {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ Ƒᴀᴅ Ɗᴜɴɢᴀ??\n\nƤᴀᴛʜᴀʀ Mᴀᴀʀ Ƙᴇ    < {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ Ƒᴀᴅ Ɗᴜɴɢᴀ??\n\nƤᴀᴛʜᴀʀ Mᴀᴀʀ Ƙᴇ    < {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ Ƒᴀᴅ Ɗᴜɴɢᴀ??\n\nƤᴀᴛʜᴀʀ Mᴀᴀʀ Ƙᴇ    < {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ Ƒᴀᴅ Ɗᴜɴɢᴀ??\n\nƤᴀᴛʜᴀʀ Mᴀᴀʀ Ƙᴇ    < {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ Ƒᴀᴅ Ɗᴜɴɢᴀ??\n\nƤᴀᴛʜᴀʀ Mᴀᴀʀ Ƙᴇ    < {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ Ƒᴀᴅ Ɗᴜɴɢᴀ??\n\nƤᴀᴛʜᴀʀ Mᴀᴀʀ Ƙᴇ    < {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ Ƒᴀᴅ Ɗᴜɴɢᴀ??\n\nƤᴀᴛʜᴀʀ Mᴀᴀʀ Ƙᴇ    < {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ Ƒᴀᴅ Ɗᴜɴɢᴀ??\n\nƤᴀᴛʜᴀʀ Mᴀᴀʀ Ƙᴇ    < {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ Ƒᴀᴅ Ɗᴜɴɢᴀ??\n\nƤᴀᴛʜᴀʀ Mᴀᴀʀ Ƙᴇ    < {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ Ƒᴀᴅ Ɗᴜɴɢᴀ??\n\nƤᴀᴛʜᴀʀ Mᴀᴀʀ Ƙᴇ    < {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ Ƒᴀᴅ Ɗᴜɴɢᴀ??\n\nƤᴀᴛʜᴀʀ Mᴀᴀʀ Ƙᴇ    < {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ Ƒᴀᴅ Ɗᴜɴɢᴀ??", target),
 ]
 
 SIREN_LIST_3 = [
-    "( {target} )-----------𝑷𝑹 𝑻𝑬𝑹𝑰 𝑴𝑨𝑨 𝑪𝑯𝑼𝑫𝑵𝑬 𝑲𝑰𝑼 𝑳𝑨𝑮 𝑮𝑨𝑰 <🙄🔥>",
-    "( {target} )-----------𝑻𝑬𝑹𝑰 𝑲𝑰 𝑪𝑯𝑼𝑻 𝑻𝑶 𝑬𝑲 𝑫𝑨𝑴 𝑴𝑰𝑻𝑯𝑨𝑰 𝑱𝑨𝑰𝑺𝑰 𝑯𝑨𝑰 <✨❄️>",
-    "( {target} )-----------𝑶𝑯 𝑵𝑶 𝑨𝑩𝑻𝑶 𝑨𝑷𝑲𝑰 𝑪𝑯𝑼𝑫𝑨𝑰 𝑯𝑶𝑮𝑰 <😊💔>",
-    "( {target} )-----------𝑨𝑷 𝑩𝑵𝑫𝑬 𝑻𝑶 𝑨𝑪𝑯𝑬 𝑯𝑶 𝑷𝑹 𝑨𝑷 𝑹𝑨𝑵𝑫𝑰 𝑲𝑬 𝑩𝑨𝑪𝑯𝑬 𝑯𝑶 <😁❤️‍🔥>",
-    "( {target} )-----------𝑵𝑰𝑪𝑯𝑬 𝑩𝑬𝑻𝑯𝑲𝑬 𝑷𝑬𝑹 𝑪𝑯𝑼 𝑴𝑬𝑹𝑬 𝑮𝑼𝑳𝑨𝑴 <😎🦶🏻>",
-    "( {target} )-----------𝑺𝑯𝑼𝑻 𝑼𝑷 𝑹𝑨𝑵𝑫𝑰 𝑴𝑨𝑨𝑲𝑬 𝑩𝑨𝑪𝑯𝑬 𝑮𝑨𝑹𝑬𝑬𝑩 <😥🖕🏻>"
+    lambda target: make_super_long("( {target} )-----------𝑷𝑹 𝑻𝑬𝑹𝑰 𝑴𝑨𝑨 𝑪𝑯𝑼𝑫𝑵𝑬 𝑲𝑰𝑼 𝑳𝑨𝑮 𝑮𝑨𝑰 <🙄🔥>★⁜⁕↬↬⁜₰⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁🎀🎧( {target} )-----------𝑷𝑹 𝑻𝑬𝑹𝑰 𝑴𝑨𝑨 𝑪𝑯𝑼𝑫𝑵𝑬 𝑲𝑰𝑼 𝑳𝑨𝑮 𝑮𝑨𝑰 <🙄🔥>————————————————————————————————————————————————————————————————————————————————————————————————————————————————————( {target} )-----------𝑷𝑹 𝑻𝑬𝑹𝑰 𝑴𝑨𝑨 𝑪𝑯𝑼𝑫𝑵𝑬 𝑲𝑰𝑼 𝑳𝑨𝑮 𝑮𝑨𝑰 <🙄🔥> ", target),
+    lambda target: make_super_long("( {target} )-----------𝑻𝑬𝑹𝑰 𝑲𝑰 𝑪𝑯𝑼𝑻 𝑻𝑶 𝑬𝑲 𝑫𝑨𝑴 𝑴𝑰𝑻𝑯𝑨𝑰 𝑱𝑨𝑰𝑺𝑰 𝑯𝑨𝑰 <✨❄️>★⁜⁕↬↬⁜₰⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁🎀🎧( {target} )-----------𝑻𝑬𝑹𝑰 𝑲𝑰 𝑪𝑯𝑼𝑻 𝑻𝑶 𝑬𝑲 𝑫𝑨𝑴 𝑴𝑰𝑻𝑯𝑨𝑰 𝑱𝑨𝑰𝑺𝑰 𝑯𝑨𝑰 <✨❄️>————————————————————————————————————————————————————————————————————————————————————————————————————————————————————( {target} )-----------𝑻𝑬𝑹𝑰 𝑲𝑰 𝑪𝑯𝑼𝑻 𝑻𝑶 𝑬𝑲 𝑫𝑨𝑴 𝑴𝑰𝑻𝑯𝑨𝑰 𝑱𝑨𝑰𝑺𝑰 𝑯𝑨𝑰  <✨❄️>", target),
+    lambda target: make_super_long("( {target} )-----------𝑶𝑯 𝑵𝑶 𝑨𝑩𝑻𝑶 𝑨𝑷𝑲𝑰 𝑪𝑯𝑼𝑫𝑨𝑰 𝑯𝑶𝑮𝑰 <😊💔>★⁜⁕↬↬⁜₰⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁🎀🎧( {target} )-----------𝑶𝑯 𝑵𝑶 𝑨𝑩𝑻𝑶 𝑨𝑷𝑲𝑰 𝑪𝑯𝑼𝑫𝑨𝑰 𝑯𝑶𝑮𝑰 <😊💔>————————————————————————————————————————————————————————————————————————————————————————————————————————————————————( {target} )-----------𝑶𝑯 𝑵𝑶 𝑨𝑩𝑻𝑶 𝑨𝑷𝑲𝑰 𝑪𝑯𝑼𝑫𝑨𝑰 𝑯𝑶𝑮𝑰  <😊💔>", target),
+    lambda target: make_super_long("( {target} )-----------𝑨𝑷 𝑩𝑵𝑫𝑬 𝑻𝑶 𝑨𝑪𝑯𝑬 𝑯𝑶 𝑷𝑹 𝑨𝑷 𝑹𝑨𝑵𝑫𝑰 𝑲𝑬 𝑩𝑨𝑪𝑯𝑬 𝑯𝑶 <😁❤️‍🔥>★⁜⁕↬↬⁜₰⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁🎀🎧( {target} )-----------𝑨𝑷 𝑩𝑵𝑫𝑬 𝑻𝑶 𝑨𝑪𝑯𝑬 𝑯𝑶 𝑷𝑹 𝑨𝑷 𝑹𝑨𝑵𝑫𝑰 𝑲𝑬 𝑩𝑨𝑪𝑯𝑬 𝑯𝑶 <😁❤️‍🔥>————————————————————————————————————————————————————————————————————————————————————————————————————————————————————( {target} )-----------𝑨𝑷 𝑩𝑵𝑫𝑬 𝑻𝑶 𝑨𝑪𝑯𝑬 𝑯𝑶 𝑷𝑹 𝑨𝑷 𝑹𝑨𝑵𝑫𝑰 𝑲𝑬 𝑩𝑨𝑪𝑯𝑬 𝑯𝑶  <😁❤️‍🔥>", target),
+    lambda target: make_super_long("( {target} )-----------𝑵𝑰𝑪𝑯𝑬 𝑩𝑬𝑻𝑯𝑲𝑬 𝑷𝑬𝑹 𝑪𝑯𝑼 𝑴𝑬𝑹𝑬 𝑮𝑼𝑳𝑨𝑴 <😎🦶🏻>★⁜⁕↬↬⁜₰⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁🎀🎧( {target} )-----------𝑵𝑰𝑪𝑯𝑬 𝑩𝑬𝑻𝑯𝑲𝑬 𝑷𝑬𝑹 𝑪𝑯𝑼 𝑴𝑬𝑹𝑬 𝑮𝑼𝑳𝑨𝑴 <😎🦶🏻>————————————————————————————————————————————————————————————————————————————————————————————————————————————————————( {target} )-----------𝑵𝑰𝑪𝑯𝑬 𝑩𝑬𝑻𝑯𝑲𝑬 𝑷𝑬𝑹 𝑪𝑯𝑼 𝑴𝑬𝑹𝑬 𝑮𝑼𝑳𝑨𝑴 <😎🦶🏻>", target),
+    lambda target: make_super_long("( {target} )-----------𝑺𝑯𝑼𝑻 𝑼𝑷 𝑹𝑨𝑵𝑫𝑰 𝑴𝑨𝑨𝑲𝑬 𝑩𝑨𝑪𝑯𝑬 𝑮𝑨𝑹𝑬𝑬𝑩 <😥🖕🏻>★⁜⁕↬↬⁜₰⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁⌁🎀🎧( {target} )-----------𝑺𝑯𝑼𝑻 𝑼𝑷 𝑹𝑨𝑵𝑫𝑰 𝑴𝑨𝑨𝑲𝑬 𝑩𝑨𝑪𝑯𝑬 𝑮𝑨𝑹𝑬𝑬𝑩 <😥🖕🏻>————————————————————————————————————————————————————————————————————————————————————————————————————————————————————( {target} )-----------𝑺𝑯𝑼𝑻 𝑼𝑷 𝑹𝑨𝑵𝑫𝑰 𝑴𝑨𝑨𝑲𝑬 𝑩𝑨𝑪𝑯𝑬 𝑮𝑨𝑹𝑬𝑬𝑩 <😥🖕🏻>", target),
 ]
 
 SIREN_LIST_4 = [
-    "𝑨𝒏𝒕𝒔 𝑰𝒏 𝒀𝒐𝒖𝒓 𝑨𝒔𝒔🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･⏔⏔⏔ ꒰ {target} ꒱ ⏔⏔⏔",
-    "𝑨𝒏𝒕𝒔 𝑰𝒏 𝒀𝒐𝒖𝒓 𝑨𝒔𝒔🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･⏔⏔⏔ ꒰ {target} ꒱ ⏔⏔⏔",
-    "𝑨𝒏𝒕𝒔 𝑰𝒏 𝒀𝒐𝒖𝒓 𝑨𝒔𝒔🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･⏔⏔⏔ ꒰ {target} ꒱ ⏔⏔⏔",
-    "𝑨𝒏𝒕𝒔 𝑰𝒏 𝒀𝒐𝒖𝒓 𝑨𝒔𝒔🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･⏔⏔⏔ ꒰ {target} ꒱ ⏔⏔⏔"
+    lambda target: make_super_long("𝑨𝒏𝒕𝒔 𝑰𝒏 𝒀𝒐𝒖𝒓 𝑨𝒔𝒔🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･⏔⏔⏔ ꒰ {target} ꒱ ⏔⏔⏔𝑨𝒏𝒕𝒔 𝑰𝒏 𝒀𝒐𝒖𝒓 𝑨𝒔𝒔🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･⏔⏔⏔ ꒰ {target} ꒱ ⏔⏔⏔𝑨𝒏𝒕𝒔 𝑰𝒏 𝒀𝒐𝒖𝒓 𝑨𝒔𝒔🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･⏔⏔⏔ ꒰ {target} ꒱ ⏔⏔⏔𝑨𝒏𝒕𝒔 𝑰𝒏 𝒀𝒐𝒖𝒓 𝑨𝒔𝒔🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･", target),
+    lambda target: make_super_long("𝑨𝒏𝒕𝒔 𝑰𝒏 𝒀𝒐𝒖𝒓 𝑨𝒔𝒔🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･⏔⏔⏔ ꒰ {target} ꒱ ⏔⏔⏔𝑨𝒏𝒕𝒔 𝑰𝒏 𝒀𝒐𝒖𝒓 𝑨𝒔𝒔🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･🦀⋆｡𖦹°🫧⋆.ೃ࿔*:･⏔⏔⏔ ꒰ {target} ꒱ ⏔⏔⏔𝑨𝒏𝒕𝒔 𝑰𝒏 𝒀𝒐𝒖𝒓 𝑨𝒔𝒔🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･🐳⋆｡𖦹°🫧⋆.ೃ࿔*:･⏔⏔⏔ ꒰ {target} ꒱ ⏔⏔⏔𝑨𝒏𝒕𝒔 𝑰𝒏 𝒀𝒐𝒖𝒓 𝑨𝒔𝒔🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･🐙⋆｡𖦹°🫧⋆.ೃ࿔*:･", target),
 ]
 
 def resolve_thread_id(cl, raw_input):
@@ -197,6 +160,35 @@ def resolve_thread_id(cl, raw_input):
     if match:
         return match.group(1)
     return raw_input
+
+# ✅ Session validation function
+def validate_session(session_id):
+    try:
+        cl = Client()
+        cl.set_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        cl.login_by_sessionid(session_id)
+        acc_info = cl.account_info()
+        if acc_info and acc_info.username:
+            return cl, acc_info
+        return None, None
+    except Exception as e:
+        log_event(f"Session validation failed: {str(e)[:50]}", "error")
+        return None, None
+
+# ✅ Session refresh function
+def refresh_session(session_id):
+    try:
+        cl = Client()
+        cl.set_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        cl.login_by_sessionid(session_id)
+        acc_info = cl.account_info()
+        if acc_info:
+            cl.user_info(acc_info.pk)
+            return cl, acc_info
+        return None, None
+    except Exception as e:
+        log_event(f"Session refresh failed: {str(e)[:50]}", "error")
+        return None, None
 
 def run_name_lock_worker(session_id, raw_gc_input, desired_name, module_key, uname):
     log_event(f"[{uname}] NC Lock active. Enforcing group name: '{desired_name}'", "success")
@@ -209,11 +201,9 @@ def run_name_lock_worker(session_id, raw_gc_input, desired_name, module_key, una
             
             while lock_name_threads.get(module_key, False):
                 try:
-                    # Validate session before action
                     try:
                         cl.account_info()
                     except:
-                        # Session expired, refresh
                         cl = Client()
                         cl.set_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
                         cl.login_by_sessionid(session_id)
@@ -241,7 +231,6 @@ def run_name_lock_worker(session_id, raw_gc_input, desired_name, module_key, una
             time.sleep(10)
 
 def run_spam_worker(session_id, initial_target, custom_texts_list, template_list, target_scope, target_gc_input, custom_delay, module_key, uname):
-    message_cycle = cycle(custom_texts_list if custom_texts_list else template_list)
     if uname not in account_stats:
         account_stats[uname] = {"sent": 0, "failed": 0, "gcs_count": 0, "target": initial_target, "active": True}
     
@@ -254,7 +243,6 @@ def run_spam_worker(session_id, initial_target, custom_texts_list, template_list
     dynamic_targets[uname] = initial_target
     campaign_info[uname] = {"target": initial_target, "active": True, "start_time": time.time()}
 
-    # Track which groups we've already renamed
     renamed_groups = set()
 
     while active_spam_threads.get(module_key, False):
@@ -267,7 +255,6 @@ def run_spam_worker(session_id, initial_target, custom_texts_list, template_list
             cl.set_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
             cl.login_by_sessionid(session_id)
             
-            # ✅ Validate session worked
             try:
                 acc_info = cl.account_info()
                 if not acc_info or not acc_info.username:
@@ -302,7 +289,10 @@ def run_spam_worker(session_id, initial_target, custom_texts_list, template_list
                 target_threads = all_gc_ids
                 account_stats[uname]["gcs_count"] = len(all_gc_ids)
 
+            # Create message cycle with lambda functions
+            message_cycle = cycle(custom_texts_list if custom_texts_list else template_list)
             consecutive_errors = 0
+            
             while active_spam_threads.get(module_key, False):
                 if node_quarantine_status.get(uname, False):
                     break
@@ -321,11 +311,11 @@ def run_spam_worker(session_id, initial_target, custom_texts_list, template_list
                         if not active_spam_threads.get(module_key, False) or node_quarantine_status.get(uname, False):
                             break
                         
-                        raw_text = next(message_cycle)
-                        message = raw_text.replace("{target}", current_target)
+                        # Get the lambda function and call it with target
+                        msg_func = next(message_cycle)
+                        message = msg_func(current_target) if callable(msg_func) else str(msg_func).replace("{target}", current_target)
                         
                         try:
-                            # Validate session before sending
                             try:
                                 cl.account_info()
                             except:
@@ -337,15 +327,15 @@ def run_spam_worker(session_id, initial_target, custom_texts_list, template_list
                             account_stats[uname]["sent"] += 1
                             message_counter[uname] += 1
                             consecutive_errors = 0
-                            log_event(f"[{uname}] SENT ➔ Target: {current_target} | GC: {str(thread_id)[:8]}...", "success")
+                            log_event(f"[{uname}] SENT (SUPER LONG) ➔ Target: {current_target} | GC: {str(thread_id)[:8]}...", "success")
                             
-                            # ✅ Check if message count is multiple of 10, then rotate group name
+                            # ✅ Group name rotation every 10 messages
                             if message_counter[uname] % 10 == 0:
                                 log_event(f"[{uname}] 🚀 10 messages sent! Rotating group name...", "info")
                                 try:
-                                    cl.direct_thread_update_title(thread_id, f"🌀 {current_target} RAID")
-                                    log_event(f"[{uname}] ✅ Group name changed to: {current_target} RAID", "success")
-                                    # Wait a bit after name change
+                                    new_name = GROUP_NAME_ROTATIONS[random.randint(0, len(GROUP_NAME_ROTATIONS)-1)].replace("{target}", current_target)
+                                    cl.direct_thread_update_title(thread_id, new_name)
+                                    log_event(f"[{uname}] ✅ Group name changed to: {new_name}", "success")
                                     time.sleep(1.5)
                                 except Exception as name_err:
                                     log_event(f"[{uname}] Name change error: {str(name_err)[:40]}", "warning")
@@ -395,6 +385,8 @@ def run_spam_worker(session_id, initial_target, custom_texts_list, template_list
     
     if uname in campaign_info:
         campaign_info[uname]["active"] = False
+
+# ========== FLASK ROUTES ==========
 
 LAYOUT_TEMPLATE = """
 <!DOCTYPE html>
@@ -587,7 +579,7 @@ DASHBOARD_HTML = """
         </div>
 
         <div class="card">
-            <div class="card-title">Advanced Multi-Node Router & Flood</div>
+            <div class="card-title">Advanced Multi-Node Router & Flood (SUPER LONG MSG)</div>
             <form method="POST">
                 <input type="hidden" name="action_type" value="start_spam">
                 
@@ -630,22 +622,22 @@ DASHBOARD_HTML = """
                 </div>
 
                 <div class="form-group">
-                    <label>Payload Template</label>
+                    <label>Payload Template (Each msg repeats 8-10 times = SUPER LONG)</label>
                     <select name="spam_option">
-                        <option value="opt1">Template 1</option>
-                        <option value="opt2">Template 2</option>
-                        <option value="opt3">Template 3</option>
-                        <option value="opt4">Template 4</option>
+                        <option value="opt1">Template 1 (Antar Mantar)</option>
+                        <option value="opt2">Template 2 (Teri Maa)</option>
+                        <option value="opt3">Template 3 (PR Teri Maa)</option>
+                        <option value="opt4">Template 4 (Ants In Your Ass)</option>
                         <option value="opt_custom">Custom Payload</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label>Custom Lines (Use {target})</label>
+                    <label>Custom Lines (Will be repeated 8-10x to make SUPER LONG)</label>
                     <textarea name="custom_text" placeholder="Line 1 for {target}&#10;Line 2 for {target}"></textarea>
                 </div>
 
-                <button type="submit" class="btn">Launch Routed Campaign</button>
+                <button type="submit" class="btn">Launch Routed Campaign (SUPER LONG MSG)</button>
             </form>
 
             <form method="POST" style="margin-top: 10px;">
@@ -664,7 +656,7 @@ DASHBOARD_HTML = """
         <div class="card">
             <div class="card-title">Live Telemetry Logs</div>
             <div id="terminal" class="terminal">
-                <div class="log-line info">[System] Console ready and operational.</div>
+                <div class="log-line info">[System] Console ready and operational. SUPER LONG MSG MODE ACTIVE!</div>
             </div>
         </div>
     </div>
@@ -800,7 +792,6 @@ def index():
             added_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             try:
-                # ✅ Validate session before adding
                 cl, acc_info = validate_session(new_sid)
                 if not cl or not acc_info:
                     message = "❌ Invalid session ID! Please check and try again."
@@ -934,12 +925,18 @@ def index():
             if not selected_nodes:
                 message = "❌ Error: Please select at least one node to deploy!"
             else:
-                selected_list = SIREN_LIST_1
-                if spam_option == "opt2": selected_list = SIREN_LIST_2
-                elif spam_option == "opt3": selected_list = SIREN_LIST_3
-                elif spam_option == "opt4": selected_list = SIREN_LIST_4
-                elif spam_option == "opt_custom": 
-                    selected_list = [line.strip() for line in custom_text.split('\n') if line.strip()] if custom_text else SIREN_LIST_1
+                if spam_option == "opt1":
+                    selected_list = SIREN_LIST_1
+                elif spam_option == "opt2":
+                    selected_list = SIREN_LIST_2
+                elif spam_option == "opt3":
+                    selected_list = SIREN_LIST_3
+                elif spam_option == "opt4":
+                    selected_list = SIREN_LIST_4
+                elif spam_option == "opt_custom":
+                    selected_list = [lambda t, line=line: make_super_long(line.replace("{target}", t), t) for line in custom_text.split('\n') if line.strip()]
+                    if not selected_list:
+                        selected_list = SIREN_LIST_1
 
                 for uname in selected_nodes:
                     cursor.execute("SELECT session_id FROM sessions WHERE username = ?", (uname,))
@@ -948,8 +945,6 @@ def index():
                         sid = row[0]
                         module_key = f"spam_{uname}"
                         active_spam_threads[module_key] = True
-                        
-                        # Reset message counter for this node
                         message_counter[uname] = 0
 
                         t = threading.Thread(
@@ -958,9 +953,9 @@ def index():
                         )
                         t.daemon = True
                         t.start()
-                        log_event(f"Node @{uname} deployed on target '{target_name}'", "info")
+                        log_event(f"Node @{uname} deployed on target '{target_name}' (SUPER LONG MSG MODE)", "info")
 
-                message = f"✅ Routed campaign active for target '{target_name}'. Group names will rotate every 10 messages!"
+                message = f"✅ Routed campaign active for target '{target_name}'. Messages are SUPER LONG (repeated 8-10x)!"
 
         elif action_type == "stop_spam":
             cursor.execute("SELECT username FROM sessions")
@@ -1012,7 +1007,7 @@ def json_action():
                 t.daemon = True
                 t.start()
             
-            log_event(f"JSON API triggered campaign: {target_name}", "success")
+            log_event(f"JSON API triggered campaign: {target_name} (SUPER LONG)", "success")
             return jsonify({"status": "success", "message": f"Started for {target_name}"})
         
         elif action == "stop":
@@ -1083,7 +1078,6 @@ def render_template_string(source, **context):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     
-    # ⚡ Start Ngrok Public Tunnel Automatically with Authtoken
     try:
         ngrok.set_auth_token("3I9s1ivPTyVes5lY6VGZEJYmjoA_HGAmAnRZdUqSkbSCyath")
         public_url = ngrok.connect(port).public_url
