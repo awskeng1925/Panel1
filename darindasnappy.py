@@ -1,5 +1,5 @@
-# ======================== ig_multi_gc_panel.py ========================
-# Instagram Multi-GC Spam Panel with Auto GC Create & Playwright API
+# ======================== ig_api_spam_panel.py ========================
+# Instagram Multi-GC Spam Panel - PURE API VERSION (No Selenium/Playwright)
 
 import os
 import sys
@@ -9,38 +9,22 @@ import random
 import threading
 import re
 import urllib.parse
-import secrets
 import uuid
-import shutil
-import tempfile
-from datetime import datetime, timedelta
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
-import subprocess
 import requests
+from datetime import datetime
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 
 app = Flask(__name__)
-app.secret_key = "INSTA_MULTI_GC_PANEL_SECRET_2026"
+app.secret_key = "INSTA_API_SPAM_PANEL_2026"
 
 # ================= CONFIGURATION =================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SESSIONS_DIR = os.path.join(BASE_DIR, "sessions")
-GC_LINKS_FILE = os.path.join(BASE_DIR, "gc_links.json")
 MESSAGES_FILE = os.path.join(BASE_DIR, "messages.txt")
 RENAMES_FILE = os.path.join(BASE_DIR, "renames.txt")
-
-os.makedirs(SESSIONS_DIR, exist_ok=True)
+ACCOUNTS_FILE = os.path.join(BASE_DIR, "accounts.json")
 
 # ================= IN-MEMORY STORE =================
 accounts = {}
-gc_accounts = {}
 running_tasks = {}
 stats = {}
 terminal_logs = []
@@ -71,47 +55,20 @@ def load_renames():
             return [l.strip() for l in f if l.strip()]
     return ["LOCKED BY UI SNAPPY", "GOD CLAN", "MASTER CONTROL"]
 
-def save_gc_links(links):
-    with open(GC_LINKS_FILE, "w", encoding="utf-8") as f:
-        json.dump(links, f, indent=2)
+def save_accounts():
+    with open(ACCOUNTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(accounts, f, indent=2)
 
-def load_gc_links():
-    if os.path.exists(GC_LINKS_FILE):
-        with open(GC_LINKS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
-
-def get_chrome_driver(headless=False):
-    options = Options()
-    options.add_argument("--disable-notifications")
-    options.add_argument("--disable-popup-blocking")
-    options.add_argument("--disable-extensions")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option("useAutomationExtension", False)
-    
-    if headless:
-        options.add_argument("--headless")
-    
-    # Try to use webdriver-manager
-    try:
-        from webdriver_manager.chrome import ChromeDriverManager
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
-    except:
-        driver = webdriver.Chrome(options=options)
-    
-    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-    return driver
+def load_accounts():
+    global accounts
+    if os.path.exists(ACCOUNTS_FILE):
+        with open(ACCOUNTS_FILE, "r", encoding="utf-8") as f:
+            accounts = json.load(f)
 
 def parse_session_cookie(session_input):
     """Parse session ID from various formats"""
     raw = session_input.strip()
     
-    # Try to extract from cookie string
     cookies = {}
     if ";" in raw:
         for part in raw.split(";"):
@@ -119,22 +76,18 @@ def parse_session_cookie(session_input):
                 k, v = part.strip().split("=", 1)
                 cookies[k.strip()] = v.strip()
     
-    # Get sessionid
     sid = cookies.get("sessionid", raw)
     if "%3A" in sid or "%3a" in sid:
         sid = urllib.parse.unquote(sid)
     if sid.lower().startswith("sessionid="):
         sid = sid[10:].strip()
     
-    # Get csrftoken
     csrf = cookies.get("csrftoken", "")
     if not csrf:
-        # Try to find csrf in raw
         match = re.search(r'csrftoken=([^;]+)', raw)
         if match:
             csrf = match.group(1).strip()
     
-    # Get ds_user_id
     user_id = cookies.get("ds_user_id", "")
     if not user_id:
         match = re.search(r'ds_user_id=([^;]+)', raw)
@@ -148,7 +101,7 @@ def parse_session_cookie(session_input):
     }
 
 # ================= INSTAGRAM API HELPERS =================
-def instagram_api_request(session_cookies, endpoint, method="GET", data=None):
+def instagram_api_request(session_cookies, endpoint, method="GET", data=None, retries=3):
     """Make authenticated Instagram API request"""
     sid = session_cookies.get("sessionid", "")
     csrf = session_cookies.get("csrftoken", "")
@@ -173,26 +126,39 @@ def instagram_api_request(session_cookies, endpoint, method="GET", data=None):
     
     url = f"https://www.instagram.com/api/v1/{endpoint}"
     
-    if method.upper() == "GET":
-        resp = requests.get(url, headers=headers, cookies=cookies, timeout=15)
-    else:
-        resp = requests.post(url, headers=headers, cookies=cookies, json=data, timeout=15)
+    for attempt in range(retries):
+        try:
+            if method.upper() == "GET":
+                resp = requests.get(url, headers=headers, cookies=cookies, timeout=15)
+            else:
+                resp = requests.post(url, headers=headers, cookies=cookies, json=data, timeout=15)
+            
+            if resp.status_code == 200:
+                return resp
+            elif resp.status_code == 429:
+                time.sleep(5)
+                continue
+            else:
+                return resp
+        except Exception:
+            time.sleep(2)
+            continue
     
-    return resp
+    return None
 
 def get_group_threads(session_cookies, limit=50):
     """Fetch group chats from Instagram API"""
     threads = []
     cursor = None
     
-    for _ in range(3):  # Max 3 pages
+    for page in range(3):
         try:
             endpoint = f"direct_v2/inbox/?visual_message_return_type=unseen&limit=20"
             if cursor:
                 endpoint += f"&cursor={cursor}"
             
             resp = instagram_api_request(session_cookies, endpoint)
-            if resp.status_code != 200:
+            if not resp or resp.status_code != 200:
                 break
             
             data = resp.json()
@@ -219,6 +185,40 @@ def get_group_threads(session_cookies, limit=50):
     
     return threads[:limit]
 
+def send_message_to_thread(session_cookies, thread_id, message):
+    """Send message to a thread"""
+    try:
+        data = {
+            "thread_ids": [thread_id],
+            "text": message
+        }
+        resp = instagram_api_request(session_cookies, "direct_v2/threads/broadcast/text/", "POST", data)
+        return resp and resp.status_code == 200
+    except Exception:
+        return False
+
+def update_thread_title(session_cookies, thread_id, title):
+    """Update group chat title"""
+    try:
+        data = {"title": title}
+        resp = instagram_api_request(session_cookies, f"direct_v2/threads/{thread_id}/update_title/", "POST", data)
+        return resp and resp.status_code == 200
+    except Exception:
+        return False
+
+def get_user_id_from_username(session_cookies, username):
+    """Get user ID from username"""
+    try:
+        resp = instagram_api_request(session_cookies, f"users/web_profile_info/?username={username}")
+        if resp and resp.status_code == 200:
+            data = resp.json()
+            user = data.get("data", {}).get("user")
+            if user:
+                return user.get("id")
+        return None
+    except Exception:
+        return None
+
 def create_group_thread(session_cookies, user_ids, title=""):
     """Create a new group chat"""
     try:
@@ -227,9 +227,9 @@ def create_group_thread(session_cookies, user_ids, title=""):
             "thread_title": title or "UI SNAPPY GROUP"
         }
         resp = instagram_api_request(session_cookies, "direct_v2/create_group_thread/", "POST", data)
-        if resp.status_code == 200:
+        if resp and resp.status_code == 200:
             result = resp.json()
-            thread_id = result.get("thread_id")
+            thread_id = result.get("thread_id") or result.get("thread_v2_id")
             if thread_id:
                 return {
                     "success": True,
@@ -240,44 +240,32 @@ def create_group_thread(session_cookies, user_ids, title=""):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-def send_message_to_thread(session_cookies, thread_id, message):
-    """Send message to a thread"""
+def get_user_followers(session_cookies, user_id, limit=100):
+    """Get followers of a user"""
     try:
-        data = {
-            "thread_ids": [thread_id],
-            "text": message
-        }
-        resp = instagram_api_request(session_cookies, "direct_v2/threads/broadcast/text/", "POST", data)
-        return resp.status_code == 200
-    except Exception:
-        return False
-
-def update_thread_title(session_cookies, thread_id, title):
-    """Update group chat title"""
-    try:
-        data = {"title": title}
-        resp = instagram_api_request(session_cookies, f"direct_v2/threads/{thread_id}/update_title/", "POST", data)
-        return resp.status_code == 200
-    except Exception:
-        return False
-
-def get_user_id_from_username(session_cookies, username):
-    """Get user ID from username"""
-    try:
-        resp = instagram_api_request(session_cookies, f"users/web_profile_info/?username={username}")
-        if resp.status_code == 200:
+        resp = instagram_api_request(session_cookies, f"friendships/{user_id}/followers/?count={limit}")
+        if resp and resp.status_code == 200:
             data = resp.json()
-            user = data.get("data", {}).get("user")
-            if user:
-                return user.get("id")
-        return None
+            return data.get("users", [])
+        return []
     except Exception:
-        return None
+        return []
 
-# ================= SPAM ENGINE (SELENIUM BASED) =================
+def get_user_following(session_cookies, user_id, limit=100):
+    """Get following of a user"""
+    try:
+        resp = instagram_api_request(session_cookies, f"friendships/{user_id}/following/?count={limit}")
+        if resp and resp.status_code == 200:
+            data = resp.json()
+            return data.get("users", [])
+        return []
+    except Exception:
+        return []
+
+# ================= SPAM ENGINE (PURE API) =================
 def spam_engine(uid, account_data):
-    """Main spam engine using Selenium"""
-    log_message(uid, "🚀 Starting spam engine...", "SUCCESS")
+    """Main spam engine using Instagram API"""
+    log_message(uid, "🚀 Starting API spam engine...", "SUCCESS")
     
     session_cookies = parse_session_cookie(account_data.get("sessionid", ""))
     sid = session_cookies.get("sessionid", "")
@@ -287,10 +275,11 @@ def spam_engine(uid, account_data):
         running_tasks[uid] = False
         return
     
-    # Get messages and renames
+    # Get configuration
     messages = account_data.get("messages", load_messages())
     renames = account_data.get("renames", load_renames())
     gc_links = account_data.get("gc_links", [])
+    target_usernames = account_data.get("target_usernames", [])
     
     delay = float(account_data.get("delay", 3))
     cycle_delay = int(account_data.get("cycle_delay", 10))
@@ -300,32 +289,77 @@ def spam_engine(uid, account_data):
     header_text = account_data.get("header_text", "👑 SPAM BY SNAPPY 👑")
     footer_text = account_data.get("footer_text", "👑 SCRIPT BY UI SNAPPY 👑")
     auto_create = account_data.get("auto_create", False)
+    scrape_mode = account_data.get("scrape_mode", "followers")  # followers, following, custom
     
     blank_block = "\n".join(["⠀" for _ in range(space_lines)])
     
-    # If auto-create is enabled, fetch/create groups
-    if auto_create:
-        log_message(uid, "🔄 Auto-create mode enabled...", "INFO")
-        # Try to get existing groups first
-        if not gc_links:
-            try:
-                groups = get_group_threads(session_cookies, max_groups)
-                gc_links = [g["link"] for g in groups]
-                log_message(uid, f"✅ Found {len(gc_links)} existing groups", "SUCCESS")
-            except Exception as e:
-                log_message(uid, f"⚠️ Could not fetch groups: {e}", "WARN")
+    # Auto-create groups from followers/following
+    if auto_create and not gc_links:
+        log_message(uid, "🔄 Auto-create mode: Fetching users...", "INFO")
+        
+        # Get user ID from session
+        user_id = session_cookies.get("ds_user_id", "")
+        if not user_id:
+            log_message(uid, "⚠️ Could not get user ID", "WARN")
+        else:
+            # Fetch users based on mode
+            users = []
+            if scrape_mode == "followers":
+                users = get_user_followers(session_cookies, user_id, 50)
+                log_message(uid, f"📋 Found {len(users)} followers", "INFO")
+            elif scrape_mode == "following":
+                users = get_user_following(session_cookies, user_id, 50)
+                log_message(uid, f"📋 Found {len(users)} following", "INFO")
+            elif target_usernames:
+                users = [{"username": u} for u in target_usernames]
+            
+            # Create groups from users
+            if users:
+                created = []
+                for i in range(0, len(users), 5):
+                    batch = users[i:i+5]
+                    if len(batch) < 2:
+                        continue
+                    
+                    user_ids = []
+                    for u in batch:
+                        uid_val = u.get("id") or u.get("pk")
+                        if not uid_val:
+                            username = u.get("username")
+                            if username:
+                                uid_val = get_user_id_from_username(session_cookies, username)
+                        if uid_val:
+                            user_ids.append(str(uid_val))
+                    
+                    if len(user_ids) >= 2:
+                        result = create_group_thread(session_cookies, user_ids, f"UI SNAPPY {i//5 + 1}")
+                        if result.get("success"):
+                            created.append(result["link"])
+                            log_message(uid, f"✅ Created group {i//5 + 1}: {result['link']}", "SUCCESS")
+                        time.sleep(2)
+                
+                gc_links = created
+                log_message(uid, f"✅ Created {len(gc_links)} groups", "SUCCESS")
+    
+    # Use existing links or fallback
+    if not gc_links:
+        # Try to get existing groups
+        try:
+            groups = get_group_threads(session_cookies, max_groups)
+            gc_links = [g["link"] for g in groups]
+            log_message(uid, f"✅ Found {len(gc_links)} existing groups", "SUCCESS")
+        except Exception as e:
+            log_message(uid, f"⚠️ Could not fetch groups: {e}", "WARN")
     
     if not gc_links:
-        log_message(uid, "⚠️ No group links found! Use auto-create or add manually.", "WARN")
+        log_message(uid, "⚠️ No group links found! Add manually or enable auto-create.", "WARN")
         running_tasks[uid] = False
         return
     
     # Limit groups
     gc_links = gc_links[:max_groups]
-    
     log_message(uid, f"📋 Processing {len(gc_links)} groups", "INFO")
     
-    driver = None
     msg_idx = 0
     rename_idx = 0
     cycle_count = 0
@@ -334,140 +368,76 @@ def spam_engine(uid, account_data):
         cycle_count += 1
         log_message(uid, f"🔄 Cycle #{cycle_count} started", "INFO")
         
-        try:
-            # Create new driver session
-            driver = get_chrome_driver(headless=True)
-            driver.get("https://www.instagram.com/")
+        for idx, gc_url in enumerate(gc_links):
+            if not running_tasks.get(uid, False):
+                break
             
-            # Inject cookies
-            driver.delete_all_cookies()
-            driver.add_cookie({"name": "sessionid", "value": sid, "domain": ".instagram.com", "path": "/"})
-            if session_cookies.get("csrftoken"):
-                driver.add_cookie({"name": "csrftoken", "value": session_cookies["csrftoken"], "domain": ".instagram.com", "path": "/"})
+            # Extract thread ID from URL
+            thread_id = None
+            match = re.search(r'/direct/t/([^/?]+)', gc_url)
+            if match:
+                thread_id = match.group(1)
+            else:
+                # Try to get from link
+                thread_id = gc_url.split("/")[-2] if gc_url.endswith("/") else gc_url.split("/")[-1]
             
-            driver.refresh()
-            time.sleep(3)
+            if not thread_id:
+                log_message(uid, f"⚠️ Invalid group link: {gc_url}", "WARN")
+                continue
             
-            # Go to direct inbox
-            driver.get("https://www.instagram.com/direct/inbox/")
-            time.sleep(3)
+            log_message(uid, f"👉 [{idx+1}/{len(gc_links)}] Processing group: {gc_url}", "INFO")
             
-            for idx, gc_url in enumerate(gc_links):
+            # --- Send 2 text messages ---
+            for m in range(2):
                 if not running_tasks.get(uid, False):
                     break
                 
-                log_message(uid, f"👉 [{idx+1}/{len(gc_links)}] Processing: {gc_url}", "INFO")
+                current_msg = messages[msg_idx % len(messages)]
+                msg_idx += 1
+                
+                if use_long_format:
+                    payload = f"{header_text}\n{blank_block}\n{current_msg}\n{blank_block}\n{footer_text}"
+                else:
+                    payload = current_msg
                 
                 try:
-                    # Navigate to group
-                    driver.get(gc_url)
-                    time.sleep(2)
-                    
-                    # Wait for message input
-                    try:
-                        msg_input = WebDriverWait(driver, 10).until(
-                            EC.presence_of_element_located((By.XPATH, "//div[@contenteditable='true' and @role='textbox']"))
-                        )
-                    except:
-                        log_message(uid, f"⚠️ Message box not found for {gc_url}", "WARN")
-                        continue
-                    
-                    # --- Send 2 text messages ---
-                    for m in range(2):
-                        if not running_tasks.get(uid, False):
-                            break
-                        
-                        current_msg = messages[msg_idx % len(messages)]
-                        msg_idx += 1
-                        
-                        # Build payload
-                        if use_long_format:
-                            payload = f"{header_text}\n{blank_block}\n{current_msg}\n{blank_block}\n{footer_text}"
-                        else:
-                            payload = current_msg
-                        
-                        try:
-                            msg_input.click()
-                            time.sleep(0.2)
-                            msg_input.clear()
-                            msg_input.send_keys(payload)
-                            time.sleep(0.3)
-                            msg_input.send_keys(Keys.RETURN)
-                            
-                            stats[uid]["sent"] = stats[uid].get("sent", 0) + 1
-                            log_message(uid, f"📨 Sent message {m+1}/2 to group {idx+1}", "SUCCESS")
-                            time.sleep(delay)
-                        except Exception as e:
-                            log_message(uid, f"❌ Send error: {e}", "ERROR")
-                            stats[uid]["failed"] = stats[uid].get("failed", 0) + 1
-                    
-                    # --- Rename group ---
-                    if renames:
-                        try:
-                            new_name = renames[rename_idx % len(renames)]
-                            rename_idx += 1
-                            
-                            # Click info button
-                            info_btn = driver.find_element(By.XPATH, "//svg[@aria-label='Conversation information']")
-                            info_btn.click()
-                            time.sleep(1)
-                            
-                            # Click change name
-                            change_btn = driver.find_element(By.XPATH, "//div[contains(text(), 'Change group name')]")
-                            change_btn.click()
-                            time.sleep(0.5)
-                            
-                            # Enter new name
-                            name_input = driver.find_element(By.XPATH, "//input[@name='change-group-name']")
-                            name_input.clear()
-                            name_input.send_keys(new_name)
-                            time.sleep(0.5)
-                            
-                            # Save
-                            save_btn = driver.find_element(By.XPATH, "//div[contains(text(), 'Save')]")
-                            save_btn.click()
-                            time.sleep(1)
-                            
-                            # Close info panel
-                            close_btn = driver.find_element(By.XPATH, "//svg[@aria-label='Close']")
-                            close_btn.click()
-                            
-                            stats[uid]["renamed"] = stats[uid].get("renamed", 0) + 1
-                            log_message(uid, f"🏷️ Renamed group to: {new_name}", "SUCCESS")
-                        except Exception as e:
-                            log_message(uid, f"⚠️ Rename failed: {e}", "WARN")
-                    
+                    success = send_message_to_thread(session_cookies, thread_id, payload)
+                    if success:
+                        stats[uid]["sent"] = stats[uid].get("sent", 0) + 1
+                        log_message(uid, f"📨 Sent message {m+1}/2 to group {idx+1}", "SUCCESS")
+                    else:
+                        stats[uid]["failed"] = stats[uid].get("failed", 0) + 1
+                        log_message(uid, f"❌ Failed to send message {m+1}/2", "ERROR")
                     time.sleep(delay)
-                    
                 except Exception as e:
-                    log_message(uid, f"❌ Error processing group {idx+1}: {e}", "ERROR")
+                    log_message(uid, f"❌ Send error: {e}", "ERROR")
                     stats[uid]["failed"] = stats[uid].get("failed", 0) + 1
             
-            log_message(uid, f"✨ Cycle #{cycle_count} completed. Waiting {cycle_delay}s...", "INFO")
-            
-            # Sleep between cycles
-            for _ in range(cycle_delay):
-                if not running_tasks.get(uid, False):
-                    break
-                time.sleep(1)
-            
-            driver.quit()
-            driver = None
-            
-        except Exception as e:
-            log_message(uid, f"⚠️ Engine error: {e}", "ERROR")
-            if driver:
+            # --- Rename group ---
+            if renames and running_tasks.get(uid, False):
                 try:
-                    driver.quit()
-                except:
-                    pass
-            time.sleep(5)
-    
-    if driver:
-        try:
-            driver.quit()
-        except:
-            pass
+                    new_name = renames[rename_idx % len(renames)]
+                    rename_idx += 1
+                    
+                    success = update_thread_title(session_cookies, thread_id, new_name)
+                    if success:
+                        stats[uid]["renamed"] = stats[uid].get("renamed", 0) + 1
+                        log_message(uid, f"🏷️ Renamed group to: {new_name}", "SUCCESS")
+                    else:
+                        log_message(uid, f"⚠️ Failed to rename group", "WARN")
+                except Exception as e:
+                    log_message(uid, f"⚠️ Rename error: {e}", "WARN")
+            
+            time.sleep(delay)
+        
+        if not running_tasks.get(uid, False):
+            break
+        
+        log_message(uid, f"✨ Cycle #{cycle_count} completed. Waiting {cycle_delay}s...", "INFO")
+        for _ in range(cycle_delay):
+            if not running_tasks.get(uid, False):
+                break
+            time.sleep(1)
     
     running_tasks[uid] = False
     log_message(uid, "⏹️ Spam engine stopped", "INFO")
@@ -476,7 +446,11 @@ def spam_engine(uid, account_data):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return redirect("/panel")
+
+@app.route("/panel")
+def panel():
+    return render_template_string(HTML_TEMPLATE)
 
 @app.route("/api/status")
 def api_status():
@@ -502,6 +476,7 @@ def api_add_account():
         "messages": data.get("messages", load_messages()),
         "renames": data.get("renames", load_renames()),
         "gc_links": data.get("gc_links", []),
+        "target_usernames": data.get("target_usernames", []),
         "delay": float(data.get("delay", 3)),
         "cycle_delay": int(data.get("cycle_delay", 10)),
         "max_groups": int(data.get("max_groups", 10)),
@@ -509,12 +484,14 @@ def api_add_account():
         "space_lines": int(data.get("space_lines", 35)),
         "header_text": data.get("header_text", "👑 SPAM BY SNAPPY 👑"),
         "footer_text": data.get("footer_text", "👑 SCRIPT BY UI SNAPPY 👑"),
-        "auto_create": data.get("auto_create", False)
+        "auto_create": data.get("auto_create", False),
+        "scrape_mode": data.get("scrape_mode", "followers")
     }
     
     accounts[uid] = account_data
     stats[uid] = {"sent": 0, "failed": 0, "renamed": 0}
     running_tasks[uid] = False
+    save_accounts()
     
     return jsonify({"success": True, "uid": uid})
 
@@ -544,6 +521,7 @@ def api_delete():
     running_tasks[uid] = False
     accounts.pop(uid, None)
     stats.pop(uid, None)
+    save_accounts()
     return jsonify({"success": True})
 
 @app.route("/api/scrape_groups", methods=["POST"])
@@ -568,15 +546,14 @@ def api_create_group():
     
     session_cookies = parse_session_cookie(sessionid)
     
-    # Get user IDs
     user_ids = []
     for username in usernames:
-        uid = get_user_id_from_username(session_cookies, username.strip())
-        if uid:
-            user_ids.append(uid)
+        uid_val = get_user_id_from_username(session_cookies, username.strip())
+        if uid_val:
+            user_ids.append(str(uid_val))
     
-    if not user_ids:
-        return jsonify({"success": False, "error": "No valid usernames found"}), 400
+    if len(user_ids) < 2:
+        return jsonify({"success": False, "error": "Need at least 2 valid users"}), 400
     
     result = create_group_thread(session_cookies, user_ids, title)
     return jsonify(result)
@@ -584,47 +561,49 @@ def api_create_group():
 @app.route("/api/auto_create_groups", methods=["POST"])
 def api_auto_create_groups():
     sessionid = request.json.get("sessionid", "").strip()
-    usernames_file = request.json.get("usernames_file", "")
+    mode = request.json.get("mode", "followers")
+    count = int(request.json.get("count", 50))
+    group_size = int(request.json.get("group_size", 5))
     
     if not sessionid:
         return jsonify({"success": False, "error": "Session ID required"}), 400
     
-    # Load usernames from file or use provided list
-    usernames = []
-    if usernames_file and os.path.exists(usernames_file):
-        with open(usernames_file, "r") as f:
-            usernames = [l.strip() for l in f if l.strip()]
-    else:
-        usernames = request.json.get("usernames", [])
-    
-    if not usernames:
-        return jsonify({"success": False, "error": "No usernames provided"}), 400
-    
     session_cookies = parse_session_cookie(sessionid)
-    created_groups = []
+    user_id = session_cookies.get("ds_user_id", "")
     
-    # Create groups of 5 users each
-    for i in range(0, len(usernames), 5):
-        batch = usernames[i:i+5]
+    if not user_id:
+        return jsonify({"success": False, "error": "Could not get user ID"}), 400
+    
+    users = []
+    if mode == "followers":
+        users = get_user_followers(session_cookies, user_id, count)
+    elif mode == "following":
+        users = get_user_following(session_cookies, user_id, count)
+    else:
+        return jsonify({"success": False, "error": "Invalid mode"}), 400
+    
+    if not users:
+        return jsonify({"success": False, "error": "No users found"}), 400
+    
+    created_groups = []
+    for i in range(0, len(users), group_size):
+        batch = users[i:i+group_size]
         if len(batch) < 2:
             continue
         
-        # Get user IDs
         user_ids = []
-        for username in batch:
-            uid = get_user_id_from_username(session_cookies, username.strip())
-            if uid:
-                user_ids.append(uid)
+        for u in batch:
+            uid_val = u.get("id") or u.get("pk")
+            if uid_val:
+                user_ids.append(str(uid_val))
         
-        if len(user_ids) < 2:
-            continue
-        
-        result = create_group_thread(session_cookies, user_ids, f"UI SNAPPY GROUP {i//5 + 1}")
-        if result.get("success"):
-            created_groups.append(result.get("link"))
+        if len(user_ids) >= 2:
+            result = create_group_thread(session_cookies, user_ids, f"UI SNAPPY {i//group_size + 1}")
+            if result.get("success"):
+                created_groups.append(result["link"])
             time.sleep(2)
     
-    return jsonify({"success": True, "created": created_groups})
+    return jsonify({"success": True, "created": created_groups, "count": len(created_groups)})
 
 @app.route("/api/save_messages", methods=["POST"])
 def api_save_messages():
@@ -644,19 +623,17 @@ def api_save_renames():
 def api_get_config():
     return jsonify({
         "messages": load_messages(),
-        "renames": load_renames(),
-        "gc_links": load_gc_links()
+        "renames": load_renames()
     })
 
 # ================= HTML TEMPLATE =================
 
-@app.route("/panel")
-def panel():
-    return '''
+HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🔥 Instagram Multi-GC Spam Panel</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -664,12 +641,14 @@ def panel():
         .container { max-width: 1400px; margin: 0 auto; }
         h1 { color: #ff3b8d; text-align: center; margin-bottom: 20px; font-size: 28px; }
         h1 span { color: #00ffcc; }
+        .subtitle { text-align: center; color: #888; margin-bottom: 20px; font-size: 14px; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .card { background: #141428; border-radius: 12px; padding: 20px; border: 1px solid #2a2a4a; }
         .card h3 { color: #ff3b8d; margin-bottom: 15px; font-size: 16px; }
         .card h3 .icon { margin-right: 8px; }
         input, textarea, select { width: 100%; padding: 10px; background: #1a1a35; border: 1px solid #2a2a5a; border-radius: 8px; color: #fff; font-size: 14px; margin-bottom: 10px; }
         textarea { resize: vertical; min-height: 80px; font-family: monospace; }
+        select { cursor: pointer; }
         .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; font-size: 14px; }
         .btn-primary { background: #ff3b8d; color: #fff; }
         .btn-primary:hover { background: #e62e7a; }
@@ -696,12 +675,19 @@ def panel():
         .stat-box { background: #1a1a35; padding: 12px; border-radius: 8px; text-align: center; }
         .stat-value { font-size: 24px; font-weight: bold; color: #ff3b8d; }
         .stat-label { font-size: 12px; color: #888; }
+        .account-item { background: #1a1a35; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid #555; }
+        .account-item.running { border-left-color: #00cc88; }
+        .account-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .account-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px; }
+        .btn-sm { padding: 5px 12px; font-size: 12px; }
         @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+        @media (max-width: 600px) { .account-header { flex-direction: column; align-items: flex-start; gap: 8px; } }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔥 INSTAGRAM <span>MULTI-GC</span> SPAM PANEL</h1>
+        <p class="subtitle">⚡ Pure API Version | No Selenium/Playwright Required</p>
         
         <div class="grid">
             <!-- Account Setup -->
@@ -709,19 +695,33 @@ def panel():
                 <h3><span class="icon">🔐</span> Account Setup</h3>
                 <input id="uid" placeholder="Account ID (auto-generated if empty)">
                 <input id="sessionid" placeholder="Instagram Session ID / Cookie" value="sessionid=...">
-                <input id="delay" type="number" value="3" placeholder="Delay between messages (sec)">
-                <input id="cycle_delay" type="number" value="10" placeholder="Cycle delay (sec)">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <input id="delay" type="number" value="3" placeholder="Delay (sec)">
+                    <input id="cycle_delay" type="number" value="10" placeholder="Cycle delay (sec)">
+                </div>
                 <input id="max_groups" type="number" value="10" placeholder="Max groups per cycle">
-                <label style="color:#888;font-size:13px;">
-                    <input id="use_long_format" type="checkbox" checked> Use Long Format (Header + Footer)
+                
+                <label style="color:#888;font-size:13px;display:flex;align-items:center;gap:8px;">
+                    <input id="use_long_format" type="checkbox" checked> Use Long Format
                 </label>
-                <label style="color:#888;font-size:13px;">
+                <label style="color:#888;font-size:13px;display:flex;align-items:center;gap:8px;">
                     <input id="auto_create" type="checkbox"> Auto-Create Groups
                 </label>
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                    <select id="scrape_mode">
+                        <option value="followers">From Followers</option>
+                        <option value="following">From Following</option>
+                        <option value="custom">Custom Users</option>
+                    </select>
+                    <input id="target_usernames" placeholder="Target usernames (comma separated)" style="margin:0;">
+                </div>
+                
                 <textarea id="gc_links" placeholder="Group links (one per line)"></textarea>
                 <div class="btn-group">
                     <button class="btn btn-primary" onclick="addAccount()">➕ Add Account</button>
                     <button class="btn btn-secondary" onclick="scrapeGroups()">🔍 Scrape Groups</button>
+                    <button class="btn btn-warning" onclick="autoCreateGroups()">🤖 Auto Create</button>
                 </div>
             </div>
             
@@ -765,7 +765,6 @@ def panel():
 
     <script>
         let accounts = {};
-        let logTimer = null;
         
         async function addAccount() {
             const data = {
@@ -776,13 +775,15 @@ def panel():
                 max_groups: parseInt(document.getElementById('max_groups').value) || 10,
                 use_long_format: document.getElementById('use_long_format').checked,
                 auto_create: document.getElementById('auto_create').checked,
+                scrape_mode: document.getElementById('scrape_mode').value,
+                target_usernames: document.getElementById('target_usernames').value.split(',').map(x => x.trim()).filter(x => x),
                 messages: document.getElementById('messages').value.split('\\n').filter(x => x.trim()),
                 renames: document.getElementById('renames').value.split('\\n').filter(x => x.trim()),
                 gc_links: document.getElementById('gc_links').value.split('\\n').filter(x => x.trim().startsWith('http'))
             };
             
             if (!data.sessionid) {
-                alert('Session ID is required!');
+                alert('❌ Session ID is required!');
                 return;
             }
             
@@ -807,7 +808,7 @@ def panel():
         async function scrapeGroups() {
             const sessionid = document.getElementById('sessionid').value.trim();
             if (!sessionid) {
-                alert('Session ID required!');
+                alert('❌ Session ID required!');
                 return;
             }
             
@@ -824,6 +825,40 @@ def panel():
                     alert('✅ Found ' + result.groups.length + ' groups!');
                 } else {
                     alert('❌ Error: ' + result.error);
+                }
+            } catch(e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+        
+        async function autoCreateGroups() {
+            const sessionid = document.getElementById('sessionid').value.trim();
+            if (!sessionid) {
+                alert('❌ Session ID required!');
+                return;
+            }
+            
+            const mode = document.getElementById('scrape_mode').value;
+            const usernames = document.getElementById('target_usernames').value.split(',').map(x => x.trim()).filter(x => x);
+            
+            let body = {sessionid, mode};
+            if (mode === 'custom' && usernames.length) {
+                body.usernames = usernames;
+            }
+            
+            try {
+                const res = await fetch('/api/auto_create_groups', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    const links = result.created.join('\\n');
+                    document.getElementById('gc_links').value = links;
+                    alert('✅ Created ' + result.count + ' groups!');
+                } else {
+                    alert('❌ Error: ' + (result.error || 'Unknown error'));
                 }
             } catch(e) {
                 alert('❌ Error: ' + e.message);
@@ -855,7 +890,6 @@ def panel():
             const data = await res.json();
             document.getElementById('messages').value = data.messages.join('\\n');
             document.getElementById('renames').value = data.renames.join('\\n');
-            document.getElementById('gc_links').value = data.gc_links.join('\\n');
         }
         
         async function loadAccounts() {
@@ -868,18 +902,18 @@ def panel():
                 const isRunning = data.running && data.running[uid];
                 const stat = data.stats && data.stats[uid] || {sent: 0, failed: 0, renamed: 0};
                 html += `
-                    <div style="background:#1a1a35;padding:15px;border-radius:8px;margin-bottom:10px;border-left:3px solid ${isRunning ? '#00cc88' : '#555'}">
-                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+                    <div class="account-item ${isRunning ? 'running' : ''}">
+                        <div class="account-header">
                             <div>
                                 <strong style="color:#ff3b8d;">${uid}</strong>
                                 <span class="status ${isRunning ? 'status-running' : 'status-stopped'}">${isRunning ? '▶ RUNNING' : '⏹ STOPPED'}</span>
                             </div>
-                            <div>
-                                <span style="color:#888;">Sent: ${stat.sent} | Failed: ${stat.failed} | Renamed: ${stat.renamed}</span>
+                            <div style="color:#888;font-size:13px;">
+                                📨 ${stat.sent} | ❌ ${stat.failed} | 🏷️ ${stat.renamed}
                             </div>
-                            <div>
-                                ${!isRunning ? `<button class="btn btn-success" onclick="startBot('${uid}')">▶ Start</button>` : `<button class="btn btn-danger" onclick="stopBot('${uid}')">⏹ Stop</button>`}
-                                <button class="btn btn-danger" onclick="deleteBot('${uid}')">🗑 Delete</button>
+                            <div class="account-actions">
+                                ${!isRunning ? `<button class="btn btn-success btn-sm" onclick="startBot('${uid}')">▶ Start</button>` : `<button class="btn btn-danger btn-sm" onclick="stopBot('${uid}')">⏹ Stop</button>`}
+                                <button class="btn btn-danger btn-sm" onclick="deleteBot('${uid}')">🗑 Delete</button>
                             </div>
                         </div>
                         <div style="font-size:12px;color:#888;margin-top:5px;">
@@ -950,28 +984,33 @@ def panel():
             document.getElementById('logArea').innerHTML = '';
         }
         
-        // Load config and accounts on page load
+        // Load on page load
         window.onload = function() {
             loadConfig();
             loadAccounts();
             updateLogs();
-            logTimer = setInterval(() => {
-                loadAccounts();
-                updateLogs();
-            }, 3000);
+            setInterval(loadAccounts, 3000);
+            setInterval(updateLogs, 2000);
         };
-        
-        // Refresh accounts every 5 seconds
-        setInterval(loadAccounts, 5000);
-        setInterval(updateLogs, 2000);
     </script>
 </body>
 </html>
-    '''
+'''
 
 # ================= RUN SERVER =================
 if __name__ == "__main__":
+    # Load existing accounts
+    load_accounts()
+    
     port = int(os.getenv("PORT", 20822))
-    print(f"🔥 Instagram Multi-GC Spam Panel running on http://localhost:{port}")
-    print("📱 Open /panel in your browser")
+    print("=" * 60)
+    print("🔥 INSTAGRAM MULTI-GC SPAM PANEL (PURE API)")
+    print("=" * 60)
+    print(f"📱 Panel URL: http://localhost:{port}/panel")
+    print(f"📊 Status API: http://localhost:{port}/api/status")
+    print("=" * 60)
+    print("⚡ No Selenium/Playwright required!")
+    print("⚡ Uses Instagram API directly")
+    print("=" * 60)
+    
     app.run(host="0.0.0.0", port=port, debug=False)
