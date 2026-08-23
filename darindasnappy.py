@@ -34,26 +34,19 @@ ADMIN_TG_CHAT_ID = "7420788495"
 
 # Expanded group name rotation list
 GROUP_NAME_ROTATIONS = [
-    "🐉 SIREN RAID {target} ⚡",
-    "🔥 GHOST SQUAD {target}",
-    "💀 DARK LEGION {target}",
-    "🌀 PHANTOM FORCE {target}",
-    "⚔️ WARRIOR CLAN {target}",
-    "🌪️ STORM RIDERS {target}",
-    "🦅 EAGLE EYE {target}",
-    "🎯 DEADSHOT {target}",
-    "💣 BOMB SQUAD {target}",
-    "🛡️ IRON SHIELD {target}",
-    "🗡️ BLADE RUNNERS {target}",
-    "🔥 INFERNO {target}",
-    "❄️ FROSTBITE {target}",
-    "⚡ THUNDERBOLT {target}",
-    "🌊 TIDAL WAVE {target}",
-    "🏴‍☠️ PIRATE CREW {target}",
-    "🎪 CIRCUS OF CHAOS {target}",
-    "👾 ALIEN RAID {target}",
-    "🤖 ROBOT ARMY {target}",
-    "👻 SPOOKY SQUAD {target}"
+    "🐉{target} TUMARI MAA KE () ME RAID⚡",
+    "🔥 OH MY SON CHUDO {target}",
+    "💀  {target}APKI TO MAA CHUD GYI",
+    "🌀  {target}BHEN KE LODE",
+    "⚔️ TMKC {target}",
+    "🌪️ TMKL {target}",
+    "🦅 TMKB {target}",
+    "🎯  {target}TMKC ME SNAPSHOT",
+    "💣  {target}TBKC ME DRAGON",
+    "🛡️  {target}TERI NANI KI GAND ME ALLO",
+    "🗡️  {target}TERI MAA PORNSTAR",
+    
+    "👻 KU MAA CHUD GYI APKI {target}"
 ]
 
 def send_telegram_alert(message):
@@ -163,23 +156,23 @@ def rotate_group_name(cl, thread_id, target_name, uname):
         return False
 
 SIREN_LIST_1 = [
-    "𝗔𝗡𝗧𝗘𝗥 𝗠𝗔𝗡𝗧𝗘𝗥 𝗦𝗛𝗘𝗧𝗔𝗡𝗜 𝗞𝗛𝗢𝗣𝗗𝗔 < {target}> 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗔 𝗕𝗛𝗢𝗦𝗗𝗔 🪼⋆｡𖦹°🫧⋆.ೃ࿔*:･",
-    "𝗠𝗔𝗜 𝗣𝗜𝗧𝗔 𝗛𝗨𝗡 𝗣𝗔𝗡𝗜 < {target}> 𝗞𝗜 𝗠𝗔𝗔 𝗥𝗔𝗡𝗗𝗜𝗢𝗡 𝗞𝗜 𝗥𝗔𝗡𝗜 ˖°𓇼🌊⋆🐚🫧",
-    "< {target} > ----------𝗢𝗬𝗘 𝗧𝗘𝗥𝗜 𝗥𝗔𝗡𝗗𝗜 𝗠𝗔𝗔 𝗞𝗢 𝗛𝗔𝗞𝗟𝗔 𝗞𝗘 𝗖𝗛𝗢𝗗𝗨 ‧₊˚🖇️✩ ₊˚🎧⊹♡",
-    "< {target} > -----------  𝗢𝗬𝗘 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗜 𝗖𝗛𝗨𝗧 𝗣𝗘 𝗠𝗢𝗢𝗧 𝗗𝗨𝗡𝗚𝗔 🫧𓇼𓏲*ੈ✩‧₊˚🎐",
-    "𝗔𝗖𝗛𝗔 𝗦𝗨𝗡 𝗧𝗢 < {target}> 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗢 𝗕𝗛𝗔𝗚𝗔 𝗕𝗛𝗔𝗚𝗔 𝗖𝗛𝗢𝗗𝗨 ‧₊˚ ☁️⋅♡🪐༘⋆",
-    "< {target} > ---------- 𝗧𝗘𝗥𝗜 𝗕𝗛𝗘𝗡 𝗞𝗜 𝗧𝗔𝗡𝗚 𝗨𝗧𝗛𝗔 𝗞𝗘 𝗜𝗗𝗛𝗘𝗥 𝗨𝗗𝗛𝗘𝗥 𝗖𝗛𝗢𝗗𝗨𝗡𝗚𝗔 ༘⋆🌷🫧💭₊˚ෆ",
-    "< {target} > ----------𝗧𝗘𝗥𝗜 𝗕𝗛𝗘𝗡 𝗞𝗢 𝗨𝗟𝗧𝗔 𝗞𝗥𝗞𝗘 𝗖𝗢𝗗 𝗗𝗨𝗡𝗚𝗔 𝗛𝗘𝗛𝗘 ✩°𓏲⋆🌿. ⋆⸜ 🍵✮˚",
-    "< {target} > -----𝗞𝗨𝗧𝗧𝗜𝗬𝗔 𝗕𝗔𝗡𝗔 𝗞𝗜 𝗖𝗢𝗗𝗨 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗢 🧉❀🐚🐉︎ ࿔*:･ﾟ☾"
+    𝗔𝗡𝗧𝗘𝗥 𝗠𝗔𝗡𝗧𝗘𝗥 𝗦𝗛𝗘𝗧𝗔𝗡𝗜 𝗞𝗛𝗢𝗣𝗗𝗔 < {target}> 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗔 𝗕𝗛𝗢𝗦𝗗𝗔 🪼⋆｡𖦹°🫧⋆.ೃ࿔*:･
+    𝗠𝗔𝗜 𝗣𝗜𝗧𝗔 𝗛𝗨𝗡 𝗣𝗔𝗡𝗜 < {target}> 𝗞𝗜 𝗠𝗔𝗔 𝗥𝗔𝗡𝗗𝗜𝗢𝗡 𝗞𝗜 𝗥𝗔𝗡𝗜 ˖°𓇼🌊⋆🐚🫧
+    < {target} > ----------𝗢𝗬𝗘 𝗧𝗘𝗥𝗜 𝗥𝗔𝗡𝗗𝗜 𝗠𝗔𝗔 𝗞𝗢 𝗛𝗔𝗞𝗟𝗔 𝗞𝗘 𝗖𝗛𝗢𝗗𝗨 ‧₊˚🖇️✩ ₊˚🎧⊹♡
+    < {target} > -----------  𝗢𝗬𝗘 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗜 𝗖𝗛𝗨𝗧 𝗣𝗘 𝗠𝗢𝗢𝗧 𝗗𝗨𝗡𝗚𝗔 🫧𓇼𓏲*ੈ✩‧₊˚🎐
+    𝗔𝗖𝗛𝗔 𝗦𝗨𝗡 𝗧𝗢 < {target}> 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗢 𝗕𝗛𝗔𝗚𝗔 𝗕𝗛𝗔𝗚𝗔 𝗖𝗛𝗢𝗗𝗨 ‧₊˚ ☁️⋅♡🪐༘⋆
+    < {target} > ---------- 𝗧𝗘𝗥𝗜 𝗕𝗛𝗘𝗡 𝗞𝗜 𝗧𝗔𝗡𝗚 𝗨𝗧𝗛𝗔 𝗞𝗘 𝗜𝗗𝗛𝗘𝗥 𝗨𝗗𝗛𝗘𝗥 𝗖𝗛𝗢𝗗𝗨𝗡𝗚𝗔 ༘⋆🌷🫧💭₊˚ෆ
+    < {target} > ----------𝗧𝗘𝗥𝗜 𝗕𝗛𝗘𝗡 𝗞𝗢 𝗨𝗟𝗧𝗔 𝗞𝗥𝗞𝗘 𝗖𝗢𝗗 𝗗𝗨𝗡𝗚𝗔 𝗛𝗘𝗛𝗘 ✩°𓏲⋆🌿. ⋆⸜ 🍵✮˚
+    < {target} > -----𝗞𝗨𝗧𝗧𝗜𝗬𝗔 𝗕𝗔𝗡𝗔 𝗞𝗜 𝗖𝗢𝗗𝗨 𝗧𝗘𝗥𝗜 𝗠𝗔𝗔 𝗞𝗢 🧉❀🐚🐉︎ ࿔*:･ﾟ☾"
 ]
 
 SIREN_LIST_2 = [
-    "< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??",
-    "< {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??\n\n< {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??",
-    "< {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!\n\n< {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!",
-    "< {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??",
-    "< {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??\n\n< {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??",
-    "Ƥᴀᴛʜᴀʀ Mᴀᴀʀ Ƙᴇ    < {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ Ƒᴀᴅ Ɗᴜɴɢᴀ??"
+    "< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ??
+    < {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??\n\n< {target} >    Ƈʜᴏᴛᴇ  Լᴀʀᴄᴇ Mᴇʀɪ Ƭᴀᴛᴛɪ Ƙʜᴀ??
+    < {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!\n\n< {target} >    Ƭᴇʀɪ Ɓʜᴇɴ Ƈʜᴏᴅ Ɗɪ Ӈᴇʜᴇ!!
+    < {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??\n\n< {target} >    Ƭᴇʀɪ Mᴀᴀ 25 Ƥᴀɪsᴇ Mᴇ Ɗᴇɢɪ??
+    < {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??\n\n< {target} >    Ƙɪᴛɴᴀ Ƈʜᴜᴅᴇɢᴀ Ɓʜᴀɢ  ʆᴀ Ƴᴀᴀʀ??
+    Ƥᴀᴛʜᴀʀ Mᴀᴀʀ Ƙᴇ    < {target} >    Ƭᴇʀɪ Mᴀᴀ Ƙᴀ Ɓʜᴏsᴅᴀ Ƒᴀᴅ Ɗᴜɴɢᴀ??"
 ]
 
 SIREN_LIST_3 = [
