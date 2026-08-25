@@ -1,6 +1,6 @@
 flask
 pyjwt
-instagrapi
+instagrapi==1.16.2
 requests
 pyngrok
 gunicorn
