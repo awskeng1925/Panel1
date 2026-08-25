@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string, request, redirect, url_for, session, send_file, jsonify, flash
+from flask import Flask, render_template_string, request, redirect, url_for, session, send_file, jsonify
 import threading
 import os
 import json
@@ -33,49 +33,60 @@ node_quarantine_status = {}
 ADMIN_TG_BOT_TOKEN = "8797760883:AAGk050hX-7IK26deFOfR3e0Gu8KtbtqLC0"
 ADMIN_TG_CHAT_ID = "7420788495"
 
-# ================= DATABASE =================
+# ================= DATABASE (FIXED) =================
 def init_db():
-    conn = sqlite3.connect('panel_users.db')
-    cursor = conn.cursor()
-    
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE,
-            password TEXT,
-            is_owner INTEGER DEFAULT 0,
-            created_by TEXT,
-            created_at TEXT,
-            total_nodes INTEGER DEFAULT 0,
-            total_spam_sent INTEGER DEFAULT 0
-        )
-    ''')
-    
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            username TEXT UNIQUE,
-            full_name TEXT,
-            followers INTEGER,
-            following INTEGER,
-            session_id TEXT,
-            ip_address TEXT,
-            device TEXT,
-            added_at TEXT,
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        )
-    ''')
-    
-    cursor.execute("SELECT * FROM users WHERE username = ?", (OWNER_USERNAME,))
-    if not cursor.fetchone():
-        hashed_pw = generate_password_hash(OWNER_PASSWORD)
-        cursor.execute("INSERT INTO users (username, password, is_owner, created_at) VALUES (?, ?, ?, ?)",
-                      (OWNER_USERNAME, hashed_pw, 1, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-    
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect('panel_users.db')
+        cursor = conn.cursor()
+        
+        # Users table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE,
+                password TEXT,
+                is_owner INTEGER DEFAULT 0,
+                created_by TEXT,
+                created_at TEXT,
+                total_nodes INTEGER DEFAULT 0,
+                total_spam_sent INTEGER DEFAULT 0
+            )
+        ''')
+        
+        # Sessions table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                username TEXT UNIQUE,
+                full_name TEXT,
+                followers INTEGER,
+                following INTEGER,
+                session_id TEXT,
+                ip_address TEXT,
+                device TEXT,
+                added_at TEXT,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        ''')
+        
+        # Force create owner if not exists
+        cursor.execute("SELECT * FROM users WHERE username = ?", (OWNER_USERNAME,))
+        if not cursor.fetchone():
+            hashed_pw = generate_password_hash(OWNER_PASSWORD)
+            cursor.execute("INSERT INTO users (username, password, is_owner, created_at) VALUES (?, ?, ?, ?)",
+                          (OWNER_USERNAME, hashed_pw, 1, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            print("✅ Owner created!")
+        
+        conn.commit()
+        conn.close()
+        print("✅ Database initialized successfully!")
+        return True
+    except Exception as e:
+        print(f"❌ Database error: {e}")
+        return False
 
+# Try to init DB
 init_db()
 
 # ================= SESSION HELPER =================
@@ -149,9 +160,8 @@ def refresh_session(cl, username):
         print(f"⚠️ Session refresh error: {e}")
         return None
 
-# ================= SPAM LISTS (5X REPEAT - LONG MESSAGES) =================
-def repeat_text(text, times=20):
-    """Repeat text 20 times with newlines"""
+# ================= SPAM LISTS =================
+def repeat_text(text, times=5):
     return "\n\n".join([text] * times)
 
 SIREN_LIST_1 = [
@@ -180,7 +190,7 @@ SIREN_LIST_3 = [
 ]
 
 SIREN_LIST_4 = [
-    repeat_text("𝑨𝒏𝒕𝒔 𝑰𝒏 𝒀𝒐𝒖𝒓 𝑨𝒔𝒔🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･⏔⏔⏔ ꒰ {target} ꒱ ⏔⏔⏔"),
+    repeat_text("𝑨𝒏𝒕𝒔 𝑰𝒏 𝒀𝒐𝒖𝒓 𝑨𝒔𝒔🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･🐊⋆｡𖦹°🫧⋆.ೃ࿔*:･⏔⏔⏔ ꒰ {target} ꒱ ⏔⏔⏔"),
 ]
 
 # ================= TELEGRAM ALERT =================
@@ -242,7 +252,6 @@ def run_name_lock_worker(session_id, raw_gc_input, desired_name, module_key, una
 
 # ================= SPAM WORKER =================
 def run_spam_worker(session_id, initial_target, custom_texts_list, template_list, target_scope, target_gc_input, custom_delay, module_key, uname, user_id):
-    # If custom texts, repeat them 5x too
     if custom_texts_list:
         custom_texts_list = [repeat_text(text) for text in custom_texts_list]
     
@@ -398,416 +407,132 @@ def update_user_stats(user_id, count):
     except:
         pass
 
-# ================= HTML TEMPLATES =================
+# ================= HTML TEMPLATES (MINIFIED) =================
 LOGIN_HTML = """
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SNAPPY PANEL - Login</title>
-    <style>
-        :root {
-            --bg-base: #0b0f19;
-            --panel-bg: #111827;
-            --border-color: #1f2937;
-            --accent-primary: #3b82f6;
-            --text-main: #f9fafb;
-            --text-muted: #9ca3af;
-        }
-        body { 
-            background-color: var(--bg-base); 
-            color: var(--text-main); 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0; 
-        }
-        .login-card { 
-            background: var(--panel-bg); 
-            border: 1px solid var(--border-color); 
-            border-radius: 10px; 
-            padding: 30px; 
-            width: 360px; 
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
-        }
-        h1 { 
-            font-size: 18px; 
-            font-weight: 600; 
-            color: var(--text-main); 
-            margin-bottom: 5px; 
-            text-align: center; 
-        }
-        .subtitle {
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 12px;
-            margin-bottom: 20px;
-        }
-        input { 
-            width: 100%; 
-            padding: 10px 12px; 
-            background: #0d1117; 
-            border: 1px solid var(--border-color); 
-            color: var(--text-main); 
-            border-radius: 6px; 
-            font-size: 13px; 
-            outline: none; 
-            margin-bottom: 12px;
-        }
-        input:focus { border-color: var(--accent-primary); }
-        .btn { 
-            width: 100%; 
-            padding: 10px; 
-            background: var(--accent-primary); 
-            border: none; 
-            color: #fff; 
-            font-weight: 600; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-size: 13px; 
-        }
-        .btn:hover { opacity: 0.9; }
-        .error {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid #ef4444;
-            color: #ef4444;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            margin-bottom: 12px;
-        }
-    </style>
-</head>
+<html><head><meta charset="UTF-8"><title>Login</title>
+<style>
+body{background:#0b0f19;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
+.login-card{background:#111827;border:1px solid #1f2937;border-radius:10px;padding:30px;width:360px}
+h1{text-align:center;font-size:18px}
+input{width:100%;padding:10px;background:#0d1117;border:1px solid #1f2937;color:#fff;border-radius:6px;margin-bottom:12px}
+.btn{width:100%;padding:10px;background:#3b82f6;border:none;color:#fff;border-radius:6px;cursor:pointer}
+.error{background:rgba(239,68,68,0.1);border:1px solid #ef4444;color:#ef4444;padding:10px;border-radius:6px;margin-bottom:12px}
+</style></head>
 <body>
 <div class="login-card">
-    <h1>🔐 SNAPPY PANEL</h1>
-    <div class="subtitle">Enter your credentials</div>
-    
-    {% if error %}
-        <div class="error">{{ error }}</div>
-    {% endif %}
-    
-    <form method="POST">
-        <input type="text" name="username" placeholder="Username" required autocomplete="off">
-        <input type="password" name="password" placeholder="Password" required>
-        <button type="submit" class="btn">Sign In</button>
-    </form>
+<h1>🔐 SNAPPY PANEL</h1>
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+<form method="POST">
+<input type="text" name="username" placeholder="Username" required>
+<input type="password" name="password" placeholder="Password" required>
+<button type="submit" class="btn">Sign In</button>
+</form>
 </div>
-</body>
-</html>
+</body></html>
 """
 
 LAYOUT_TEMPLATE = """
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SNAPPY PANEL</title>
-    <style>
-        :root {
-            --bg-base: #0b0f19;
-            --panel-bg: #111827;
-            --border-color: #1f2937;
-            --accent-primary: #3b82f6;
-            --accent-success: #10b981;
-            --accent-warning: #f59e0b;
-            --accent-danger: #ef4444;
-            --text-main: #f9fafb;
-            --text-muted: #9ca3af;
-        }
-        * { box-sizing: border-box; }
-        body {
-            background-color: var(--bg-base);
-            color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            margin: 0; padding: 20px;
-        }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .header {
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px;
-        }
-        .header h1 { font-size: 16px; font-weight: 600; color: var(--text-main); margin: 0; }
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-        .user-info .role {
-            background: var(--accent-primary);
-            color: #fff;
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-size: 10px;
-        }
-        .user-info .role.owner {
-            background: var(--accent-warning);
-            color: #000;
-        }
-        .nav-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-        .nav-tabs a {
-            background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-muted);
-            padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 500;
-        }
-        .nav-tabs a.active { background: var(--accent-primary); color: #fff; border-color: var(--accent-primary); }
-        .nav-tabs a.logout { background: var(--accent-danger); color: #fff; border-color: var(--accent-danger); }
-        .card {
-            background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 10px;
-            padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 20px;
-        }
-        .card-title { font-size: 13px; font-weight: 600; color: var(--text-main); text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px; }
-        .form-group { margin-bottom: 14px; }
-        label { display: block; font-size: 11px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; }
-        input, select, textarea {
-            width: 100%; padding: 10px 12px; background: #0d1117; border: 1px solid var(--border-color);
-            color: var(--text-main); border-radius: 6px; font-size: 13px; outline: none;
-        }
-        input:focus, select:focus, textarea:focus { border-color: var(--accent-primary); }
-        textarea { height: 80px; resize: vertical; }
-        .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; background: #0d1117; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); }
-        .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; }
-        .btn {
-            width: 100%; padding: 10px; background: var(--accent-primary); border: none; color: #fff;
-            font-weight: 600; border-radius: 6px; cursor: pointer; font-size: 12px; margin-top: 5px;
-        }
-        .btn-warning { background: var(--accent-warning); color: #111827; }
-        .btn-danger { background: var(--accent-danger); color: #fff; }
-        .btn-success { background: var(--accent-success); color: #000; }
-        .terminal {
-            background: #0d1117; border: 1px solid var(--border-color); border-radius: 8px;
-            height: 460px; overflow-y: auto; padding: 14px; font-size: 12px; font-family: monospace; display: flex; flex-direction: column-reverse;
-        }
-        .log-line { margin-bottom: 6px; }
-        .success { color: var(--accent-success); }
-        .error { color: var(--accent-danger); }
-        .warning { color: var(--accent-warning); }
-        .info { color: var(--accent-primary); }
-        .grid-2 { display: grid; grid-template-columns: 420px 1fr; gap: 20px; }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        .stat-box {
-            background: #0d1117;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 10px;
-            text-align: center;
-        }
-        .stat-box .number {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--text-main);
-        }
-        .stat-box .label {
-            font-size: 10px;
-            color: var(--text-muted);
-        }
-        @media(max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } .stats-grid { grid-template-columns: repeat(2, 1fr); } }
-    </style>
-</head>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>SNAPPY PANEL</title>
+<style>
+:root{--bg-base:#0b0f19;--panel-bg:#111827;--border-color:#1f2937;--accent-primary:#3b82f6;--accent-success:#10b981;--accent-warning:#f59e0b;--accent-danger:#ef4444;--text-main:#f9fafb;--text-muted:#9ca3af}
+*{box-sizing:border-box}body{background:var(--bg-base);color:var(--text-main);font-family:sans-serif;margin:0;padding:20px}
+.container{max-width:1200px;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-color);padding-bottom:15px;margin-bottom:20px}
+.header h1{font-size:16px;margin:0}
+.user-info{display:flex;align-items:center;gap:15px;font-size:12px;color:var(--text-muted)}
+.role{background:var(--accent-primary);color:#fff;padding:2px 10px;border-radius:12px;font-size:10px}
+.role.owner{background:var(--accent-warning);color:#000}
+.nav-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.nav-tabs a{background:var(--panel-bg);border:1px solid var(--border-color);color:var(--text-muted);padding:8px 16px;border-radius:6px;text-decoration:none;font-size:12px}
+.nav-tabs a.active{background:var(--accent-primary);color:#fff}
+.nav-tabs a.logout{background:var(--accent-danger);color:#fff}
+.card{background:var(--panel-bg);border:1px solid var(--border-color);border-radius:10px;padding:20px;margin-bottom:20px}
+.card-title{font-size:13px;font-weight:600;border-bottom:1px solid var(--border-color);padding-bottom:10px;margin-bottom:15px}
+.form-group{margin-bottom:14px}
+label{display:block;font-size:11px;color:var(--text-muted);margin-bottom:6px}
+input,select,textarea{width:100%;padding:10px;background:#0d1117;border:1px solid var(--border-color);color:var(--text-main);border-radius:6px;font-size:13px}
+.btn{width:100%;padding:10px;background:var(--accent-primary);border:none;color:#fff;border-radius:6px;cursor:pointer;font-size:12px;margin-top:5px}
+.btn-danger{background:var(--accent-danger)}
+.btn-success{background:var(--accent-success);color:#000}
+.terminal{background:#0d1117;border:1px solid var(--border-color);border-radius:8px;height:460px;overflow-y:auto;padding:14px;font-size:12px;font-family:monospace;display:flex;flex-direction:column-reverse}
+.log-line{margin-bottom:6px}.success{color:var(--accent-success)}.error{color:var(--accent-danger)}.warning{color:var(--accent-warning)}.info{color:var(--accent-primary)}
+.grid-2{display:grid;grid-template-columns:420px 1fr;gap:20px}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:15px}
+.stat-box{background:#0d1117;border:1px solid var(--border-color);border-radius:6px;padding:10px;text-align:center}
+.stat-box .number{font-size:20px;font-weight:700}
+.stat-box .label{font-size:10px;color:var(--text-muted)}
+.checkbox-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;background:#0d1117;padding:10px;border-radius:6px;border:1px solid var(--border-color)}
+.checkbox-item{display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer}
+@media(max-width:900px){.grid-2{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,1fr)}}
+</style></head>
 <body>
 <div class="container">
-    <div class="header">
-        <h1>SNAPPY PANEL</h1>
-        <div class="user-info">
-            <span>{{ session.get('username') }}</span>
-            <span class="role {% if session.get('is_owner') %}owner{% endif %}">
-                {% if session.get('is_owner') %}👑 OWNER{% else %}👤 CLIENT{% endif %}
-            </span>
-            <span>Uptime: <span id="uptime">0h 0m 0s</span></span>
-        </div>
-    </div>
-
-    <div class="nav-tabs">
-        <a href="/" class="{% if active_tab == 'dashboard' %}active{% endif %}">Dashboard</a>
-        <a href="/nodes" class="{% if active_tab == 'nodes' %}active{% endif %}">My Nodes</a>
-        {% if session.get('is_owner') %}
-            <a href="/clients" class="{% if active_tab == 'clients' %}active{% endif %}">👥 Clients</a>
-            <a href="/all_nodes" class="{% if active_tab == 'all_nodes' %}active{% endif %}">🌐 All Nodes</a>
-        {% endif %}
-        <a href="/logout" class="logout">Logout</a>
-    </div>
-
-    {% if message %}
-        <div style="padding: 12px; margin-bottom: 18px; border-radius: 6px; font-size: 12px; font-weight: 500; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent-success); color: var(--accent-success);">
-            {{ message }}
-        </div>
-    {% endif %}
-
-    {% block content %}{% endblock %}
+<div class="header"><h1>SNAPPY PANEL</h1>
+<div class="user-info">
+<span>{{ session.get('username') }}</span>
+<span class="role{% if session.get('is_owner') %} owner{% endif %}">{% if session.get('is_owner') %}👑 OWNER{% else %}👤 CLIENT{% endif %}</span>
+<span>Uptime: <span id="uptime">0h 0m 0s</span></span>
+</div></div>
+<div class="nav-tabs">
+<a href="/" class="{% if active_tab=='dashboard' %}active{% endif %}">Dashboard</a>
+<a href="/nodes" class="{% if active_tab=='nodes' %}active{% endif %}">My Nodes</a>
+{% if session.get('is_owner') %}
+<a href="/clients" class="{% if active_tab=='clients' %}active{% endif %}">👥 Clients</a>
+<a href="/all_nodes" class="{% if active_tab=='all_nodes' %}active{% endif %}">🌐 All Nodes</a>
+{% endif %}
+<a href="/logout" class="logout">Logout</a>
 </div>
-
+{% if message %}<div style="padding:12px;margin-bottom:18px;border-radius:6px;font-size:12px;background:rgba(16,185,129,0.1);border:1px solid var(--accent-success);color:var(--accent-success)">{{ message }}</div>{% endif %}
+{% block content %}{% endblock %}
+</div>
 <script>
-    let startTime = Math.floor(Date.now() / 1000) - {{ uptime_seconds }};
-    function updateUptime() {
-        let now = Math.floor(Date.now() / 1000);
-        let diff = now - startTime;
-        let h = Math.floor(diff / 3600);
-        let m = Math.floor((diff % 3600) / 60);
-        let s = diff % 60;
-        document.getElementById('uptime').innerText = h + "h " + m + "m " + s + "s";
-    }
-    setInterval(updateUptime, 1000);
+let startTime=Math.floor(Date.now()/1000)-{{ uptime_seconds }};
+setInterval(function(){let now=Math.floor(Date.now()/1000);let diff=now-startTime;let h=Math.floor(diff/3600);let m=Math.floor((diff%3600)/60);let s=diff%60;document.getElementById('uptime').innerText=h+"h "+m+"m "+s+"s"},1000);
 </script>
-</body>
-</html>
+</body></html>
 """
 
 DASHBOARD_HTML = """
 {% extends "layout" %}
 {% block content %}
-<div class="grid-2">
-    <div>
-        <!-- Stats -->
-        <div class="stats-grid">
-            <div class="stat-box">
-                <div class="number">{{ stats.nodes }}</div>
-                <div class="label">My Nodes</div>
-            </div>
-            <div class="stat-box">
-                <div class="number">{{ stats.sent }}</div>
-                <div class="label">Total Sent</div>
-            </div>
-            <div class="stat-box">
-                <div class="number">{{ stats.failed }}</div>
-                <div class="label">Failed</div>
-            </div>
-            <div class="stat-box">
-                <div class="number">{{ stats.active }}</div>
-                <div class="label">Active</div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">Add Instagram Node</div>
-            <form method="POST">
-                <input type="hidden" name="action_type" value="add_session">
-                <div class="form-group">
-                    <label>Session ID Cookie</label>
-                    <input type="text" name="new_session_id" placeholder="Paste sessionid cookie..." required>
-                </div>
-                <button type="submit" class="btn">Authorize Node</button>
-            </form>
-        </div>
-
-        <div class="card" style="border-color: var(--accent-success);">
-            <div class="card-title" style="color: var(--accent-success);">⚡ Live Target Switcher</div>
-            <form method="POST">
-                <input type="hidden" name="action_type" value="update_live_target">
-                <div class="form-group">
-                    <label>New Target</label>
-                    <input type="text" name="new_target_name" placeholder="New target..." required>
-                </div>
-                <button type="submit" class="btn btn-success">Update Target</button>
-            </form>
-        </div>
-
-        <div class="card">
-            <div class="card-title">🚀 Launch Spam Campaign</div>
-            <form method="POST">
-                <input type="hidden" name="action_type" value="start_spam">
-                
-                <div class="form-group">
-                    <label>Select Nodes (Check to include)</label>
-                    <div class="checkbox-grid">
-                        {% if all_nodes %}
-                            {% for node in all_nodes %}
-                                <label class="checkbox-item">
-                                    <input type="checkbox" name="selected_nodes" value="{{ node }}" checked> @{{ node }}
-                                </label>
-                            {% endfor %}
-                        {% else %}
-                            <span style="font-size: 11px; color: var(--text-muted);">No nodes registered.</span>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Target</label>
-                    <input type="text" name="target_name" placeholder="Target Name" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Scope</label>
-                    <select name="target_scope">
-                        <option value="all">All Group Chats</option>
-                        <option value="single">Single Group</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Single Group ID</label>
-                    <input type="text" name="single_gc_input" placeholder="Thread ID...">
-                </div>
-
-                <div class="form-group">
-                    <label>Delay (Seconds)</label>
-                    <input type="number" step="any" name="custom_delay" value="3.5" min="2.0" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Template</label>
-                    <select name="spam_option">
-                        <option value="opt1">Template 1</option>
-                        <option value="opt2">Template 2</option>
-                        <option value="opt3">Template 3</option>
-                        <option value="opt4">Template 4</option>
-                        <option value="opt_custom">Custom</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Custom Lines (Use {target})</label>
-                    <textarea name="custom_text" placeholder="Line 1 for {target}"></textarea>
-                </div>
-
-                <button type="submit" class="btn">Launch Campaign</button>
-            </form>
-
-            <form method="POST" style="margin-top: 10px;">
-                <input type="hidden" name="action_type" value="stop_spam">
-                <button type="submit" class="btn btn-danger">Stop All</button>
-            </form>
-        </div>
-    </div>
-
-    <div>
-        <div class="card">
-            <div class="card-title">Live Logs</div>
-            <div id="terminal" class="terminal">
-                <div class="log-line info">[System] Console ready.</div>
-            </div>
-        </div>
-    </div>
+<div class="grid-2"><div>
+<div class="stats-grid">
+<div class="stat-box"><div class="number">{{ stats.nodes }}</div><div class="label">My Nodes</div></div>
+<div class="stat-box"><div class="number">{{ stats.sent }}</div><div class="label">Sent</div></div>
+<div class="stat-box"><div class="number">{{ stats.failed }}</div><div class="label">Failed</div></div>
+<div class="stat-box"><div class="number">{{ stats.active }}</div><div class="label">Active</div></div>
 </div>
 
+<div class="card"><div class="card-title">Add Node</div>
+<form method="POST"><input type="hidden" name="action_type" value="add_session">
+<div class="form-group"><label>Session ID</label><input type="text" name="new_session_id" placeholder="Paste sessionid..." required></div>
+<button type="submit" class="btn">Authorize</button></form></div>
+
+<div class="card"><div class="card-title">⚡ Target Switcher</div>
+<form method="POST"><input type="hidden" name="action_type" value="update_live_target">
+<div class="form-group"><label>New Target</label><input type="text" name="new_target_name" placeholder="New target..." required></div>
+<button type="submit" class="btn btn-success">Update</button></form></div>
+
+<div class="card"><div class="card-title">🚀 Launch Campaign</div>
+<form method="POST"><input type="hidden" name="action_type" value="start_spam">
+<div class="form-group"><label>Select Nodes</label>
+<div class="checkbox-grid">{% if all_nodes %}{% for node in all_nodes %}<label class="checkbox-item"><input type="checkbox" name="selected_nodes" value="{{ node }}" checked> @{{ node }}</label>{% endfor %}{% else %}<span style="font-size:11px;color:var(--text-muted)">No nodes registered.</span>{% endif %}</div></div>
+<div class="form-group"><label>Target</label><input type="text" name="target_name" placeholder="Target Name" required></div>
+<div class="form-group"><label>Scope</label><select name="target_scope"><option value="all">All Groups</option><option value="single">Single Group</option></select></div>
+<div class="form-group"><label>Single Group ID</label><input type="text" name="single_gc_input" placeholder="Thread ID..."></div>
+<div class="form-group"><label>Delay (Seconds)</label><input type="number" step="any" name="custom_delay" value="3.5" min="2.0" required></div>
+<div class="form-group"><label>Template</label><select name="spam_option"><option value="opt1">Template 1</option><option value="opt2">Template 2</option><option value="opt3">Template 3</option><option value="opt4">Template 4</option><option value="opt_custom">Custom</option></select></div>
+<div class="form-group"><label>Custom Lines (Use {target})</label><textarea name="custom_text" placeholder="Line 1 for {target}"></textarea></div>
+<button type="submit" class="btn">Launch</button></form>
+<form method="POST" style="margin-top:10px"><input type="hidden" name="action_type" value="stop_spam"><button type="submit" class="btn btn-danger">Stop All</button></form></div>
+</div><div>
+<div class="card"><div class="card-title">Live Logs</div><div id="terminal" class="terminal"><div class="log-line info">[System] Ready.</div></div></div>
+</div></div>
 <script>
-    function updateTelemetry() {
-        fetch('/get_logs')
-            .then(res => res.json())
-            .then(data => {
-                let terminal = document.getElementById('terminal');
-                let html = '';
-                data.logs.forEach(log => {
-                    let cls = 'info';
-                    if(log.level === 'success') cls = 'success';
-                    if(log.level === 'error') cls = 'error';
-                    if(log.level === 'warning') cls = 'warning';
-                    html += `<div class="log-line ${cls}">[${log.time}] ${log.msg}</div>`;
-                });
-                terminal.innerHTML = html;
-            });
-    }
-    setInterval(updateTelemetry, 1500);
+function updateTelemetry(){fetch('/get_logs').then(res=>res.json()).then(data=>{let terminal=document.getElementById('terminal');let html='';data.logs.forEach(log=>{let cls='info';if(log.level==='success')cls='success';if(log.level==='error')cls='error';if(log.level==='warning')cls='warning';html+=`<div class="log-line ${cls}">[${log.time}] ${log.msg}</div>`;});terminal.innerHTML=html;});}
+setInterval(updateTelemetry,1500);
 </script>
 {% endblock %}
 """
@@ -815,117 +540,59 @@ DASHBOARD_HTML = """
 NODES_HTML = """
 {% extends "layout" %}
 {% block content %}
-<div class="card">
-    <div class="card-title">My Nodes</div>
-    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">
-        Total Nodes: <b style="color: var(--accent-success);">{{ nodes|length }}</b>
-    </div>
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
-        {% for node in nodes %}
-            <div style="background: #0d1117; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 10px;">
-                    <span style="font-weight: 600; color: var(--text-main); font-size: 12px;">@{{ node.username }}</span>
-                    <span style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent-success); color: var(--accent-success); padding: 2px 6px; font-size: 10px; border-radius: 4px;">
-                        {% if node.active %}ACTIVE{% else %}IDLE{% endif %}
-                    </span>
-                </div>
-                
-                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
-                    Followers: {{ node.followers }} | Following: {{ node.following }}
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; background: var(--bg-base); padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 12px;">
-                    <div><span style="font-size: 9px; color: var(--text-muted);">SENT</span><br><strong style="color: var(--accent-success);">{{ node.sent }}</strong></div>
-                    <div><span style="font-size: 9px; color: var(--text-muted);">FAILED</span><br><strong style="color: var(--accent-danger);">{{ node.failed }}</strong></div>
-                    <div><span style="font-size: 9px; color: var(--text-muted);">GCS</span><br><strong style="color: var(--accent-primary);">{{ node.gcs }}</strong></div>
-                </div>
-
-                <form method="POST" style="display: inline;">
-                    <input type="hidden" name="action_type" value="remove_node">
-                    <input type="hidden" name="node_username" value="{{ node.username }}">
-                    <button type="submit" class="btn btn-danger" style="padding: 6px; font-size: 11px;">Remove</button>
-                </form>
-            </div>
-        {% endfor %}
-    </div>
-</div>
+<div class="card"><div class="card-title">My Nodes</div>
+<div style="font-size:12px;color:var(--text-muted);margin-bottom:15px">Total: <b style="color:var(--accent-success)">{{ nodes|length }}</b></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px">{% for node in nodes %}
+<div style="background:#0d1117;border:1px solid var(--border-color);border-radius:8px;padding:15px">
+<div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border-color);padding-bottom:8px;margin-bottom:10px">
+<span style="font-weight:600">@{{ node.username }}</span>
+<span style="background:rgba(16,185,129,0.1);border:1px solid var(--accent-success);color:var(--accent-success);padding:2px 6px;font-size:10px;border-radius:4px">{% if node.active %}ACTIVE{% else %}IDLE{% endif %}</span></div>
+<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Followers: {{ node.followers }} | Following: {{ node.following }}</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center;background:var(--bg-base);padding:8px;border-radius:6px;border:1px solid var(--border-color);margin-bottom:12px">
+<div><span style="font-size:9px;color:var(--text-muted)">SENT</span><br><strong style="color:var(--accent-success)">{{ node.sent }}</strong></div>
+<div><span style="font-size:9px;color:var(--text-muted)">FAILED</span><br><strong style="color:var(--accent-danger)">{{ node.failed }}</strong></div>
+<div><span style="font-size:9px;color:var(--text-muted)">GCS</span><br><strong style="color:var(--accent-primary)">{{ node.gcs }}</strong></div></div>
+<form method="POST"><input type="hidden" name="action_type" value="remove_node"><input type="hidden" name="node_username" value="{{ node.username }}"><button type="submit" class="btn btn-danger" style="padding:6px;font-size:11px">Remove</button></form>
+</div>{% endfor %}</div></div>
 {% endblock %}
 """
 
 CLIENTS_HTML = """
 {% extends "layout" %}
 {% block content %}
-<div class="card">
-    <div class="card-title">👥 Client Management</div>
-    
-    <div class="card" style="border-color: var(--accent-success);">
-        <div class="card-title" style="color: var(--accent-success);">➕ Create New Client</div>
-        <form method="POST">
-            <input type="hidden" name="action_type" value="create_client">
-            <div class="form-group">
-                <label>Client Username</label>
-                <input type="text" name="client_username" placeholder="client123" required>
-            </div>
-            <div class="form-group">
-                <label>Client Password</label>
-                <input type="text" name="client_password" placeholder="password123" required>
-            </div>
-            <button type="submit" class="btn btn-success">Create Client</button>
-        </form>
-    </div>
-
-    <div style="margin-top: 20px;">
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
-            {% for client in clients %}
-                <div style="background: #0d1117; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 10px;">
-                        <span style="font-weight: 600;">@{{ client.username }}</span>
-                        <span style="font-size: 10px; color: var(--text-muted);">ID: {{ client.id }}</span>
-                    </div>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; margin-bottom: 10px;">
-                        <div><span style="font-size: 9px; color: var(--text-muted);">Nodes</span><br><strong>{{ client.nodes }}</strong></div>
-                        <div><span style="font-size: 9px; color: var(--text-muted);">Sent</span><br><strong style="color: var(--accent-success);">{{ client.total_sent }}</strong></div>
-                        <div><span style="font-size: 9px; color: var(--text-muted);">Created</span><br><strong style="font-size: 10px;">{{ client.created_at[:10] }}</strong></div>
-                    </div>
-                    <form method="POST" style="display: inline;">
-                        <input type="hidden" name="action_type" value="delete_client">
-                        <input type="hidden" name="client_id" value="{{ client.id }}">
-                        <button type="submit" class="btn btn-danger" style="padding: 6px; font-size: 11px;">Delete Client</button>
-                    </form>
-                </div>
-            {% endfor %}
-        </div>
-    </div>
-</div>
+<div class="card"><div class="card-title">👥 Client Management</div>
+<div class="card" style="border-color:var(--accent-success)"><div class="card-title" style="color:var(--accent-success)">➕ Create Client</div>
+<form method="POST"><input type="hidden" name="action_type" value="create_client">
+<div class="form-group"><label>Username</label><input type="text" name="client_username" placeholder="client123" required></div>
+<div class="form-group"><label>Password</label><input type="text" name="client_password" placeholder="password123" required></div>
+<button type="submit" class="btn btn-success">Create</button></form></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:15px;margin-top:20px">{% for client in clients %}
+<div style="background:#0d1117;border:1px solid var(--border-color);border-radius:8px;padding:15px">
+<div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border-color);padding-bottom:8px;margin-bottom:10px">
+<span style="font-weight:600">@{{ client.username }}</span><span style="font-size:10px;color:var(--text-muted)">ID: {{ client.id }}</span></div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center;margin-bottom:10px">
+<div><span style="font-size:9px;color:var(--text-muted)">Nodes</span><br><strong>{{ client.nodes }}</strong></div>
+<div><span style="font-size:9px;color:var(--text-muted)">Sent</span><br><strong style="color:var(--accent-success)">{{ client.total_sent }}</strong></div>
+<div><span style="font-size:9px;color:var(--text-muted)">Created</span><br><strong style="font-size:10px">{{ client.created_at[:10] }}</strong></div></div>
+<form method="POST"><input type="hidden" name="action_type" value="delete_client"><input type="hidden" name="client_id" value="{{ client.id }}"><button type="submit" class="btn btn-danger" style="padding:6px;font-size:11px">Delete</button></form>
+</div>{% endfor %}</div></div>
 {% endblock %}
 """
 
 ALL_NODES_HTML = """
 {% extends "layout" %}
 {% block content %}
-<div class="card">
-    <div class="card-title">🌐 All Nodes (All Clients)</div>
-    
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
-        {% for node in all_nodes %}
-            <div style="background: #0d1117; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 10px;">
-                    <span style="font-weight: 600;">@{{ node.username }}</span>
-                    <span style="font-size: 10px; color: var(--text-muted);">Client: {{ node.client }}</span>
-                </div>
-                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
-                    Followers: {{ node.followers }}
-                </div>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; background: var(--bg-base); padding: 8px; border-radius: 6px; border: 1px solid var(--border-color);">
-                    <div><span style="font-size: 9px; color: var(--text-muted);">SENT</span><br><strong style="color: var(--accent-success);">{{ node.sent }}</strong></div>
-                    <div><span style="font-size: 9px; color: var(--text-muted);">FAILED</span><br><strong style="color: var(--accent-danger);">{{ node.failed }}</strong></div>
-                    <div><span style="font-size: 9px; color: var(--text-muted);">GCS</span><br><strong style="color: var(--accent-primary);">{{ node.gcs }}</strong></div>
-                </div>
-            </div>
-        {% endfor %}
-    </div>
-</div>
+<div class="card"><div class="card-title">🌐 All Nodes</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:15px">{% for node in all_nodes %}
+<div style="background:#0d1117;border:1px solid var(--border-color);border-radius:8px;padding:15px">
+<div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border-color);padding-bottom:8px;margin-bottom:10px">
+<span style="font-weight:600">@{{ node.username }}</span><span style="font-size:10px;color:var(--text-muted)">Client: {{ node.client }}</span></div>
+<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Followers: {{ node.followers }}</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center;background:var(--bg-base);padding:8px;border-radius:6px;border:1px solid var(--border-color)">
+<div><span style="font-size:9px;color:var(--text-muted)">SENT</span><br><strong style="color:var(--accent-success)">{{ node.sent }}</strong></div>
+<div><span style="font-size:9px;color:var(--text-muted)">FAILED</span><br><strong style="color:var(--accent-danger)">{{ node.failed }}</strong></div>
+<div><span style="font-size:9px;color:var(--text-muted)">GCS</span><br><strong style="color:var(--accent-primary)">{{ node.gcs }}</strong></div></div>
+</div>{% endfor %}</div></div>
 {% endblock %}
 """
 
@@ -939,19 +606,22 @@ def login():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
         
-        conn = sqlite3.connect('panel_users.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, username, password, is_owner FROM users WHERE username = ?", (username,))
-        user = cursor.fetchone()
-        conn.close()
-        
-        if user and check_password_hash(user[2], password):
-            session["user_id"] = user[0]
-            session["username"] = user[1]
-            session["is_owner"] = bool(user[3])
-            return redirect(url_for("dashboard"))
-        else:
-            return render_template_string(LOGIN_HTML, error="Invalid credentials!")
+        try:
+            conn = sqlite3.connect('panel_users.db')
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, username, password, is_owner FROM users WHERE username = ?", (username,))
+            user = cursor.fetchone()
+            conn.close()
+            
+            if user and check_password_hash(user[2], password):
+                session["user_id"] = user[0]
+                session["username"] = user[1]
+                session["is_owner"] = bool(user[3])
+                return redirect(url_for("dashboard"))
+            else:
+                return render_template_string(LOGIN_HTML, error="Invalid credentials!")
+        except Exception as e:
+            return render_template_string(LOGIN_HTML, error=f"Database error: {str(e)[:50]}")
     
     return render_template_string(LOGIN_HTML)
 
@@ -964,239 +634,193 @@ def dashboard():
     is_owner = session.get("is_owner", False)
     message = None
     
-    conn = sqlite3.connect('panel_users.db')
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT username FROM sessions WHERE user_id = ?", (user_id,))
-    user_nodes = [row[0] for row in cursor.fetchall()]
-    
-    if request.method == "POST":
-        action_type = request.form.get("action_type")
+    try:
+        conn = sqlite3.connect('panel_users.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT username FROM sessions WHERE user_id = ?", (user_id,))
+        user_nodes = [row[0] for row in cursor.fetchall()]
         
-        if action_type == "add_session":
-            new_sid = request.form.get("new_session_id", "").strip()
-            try:
-                cl = login_with_session(new_sid, "temp_user")
-                acc_info = cl.account_info()
-                username = acc_info.username
-                full_name = acc_info.full_name or "N/A"
-                
+        if request.method == "POST":
+            action_type = request.form.get("action_type")
+            
+            if action_type == "add_session":
+                new_sid = request.form.get("new_session_id", "").strip()
                 try:
-                    user_id_from_insta = cl.user_id_from_username(username)
-                    user_details = cl.user_info(user_id_from_insta)
-                    followers = user_details.follower_count
-                    following = user_details.following_count
-                except:
-                    followers = 0
-                    following = 0
+                    cl = login_with_session(new_sid, "temp_user")
+                    acc_info = cl.account_info()
+                    username = acc_info.username
+                    full_name = acc_info.full_name or "N/A"
+                    
+                    try:
+                        user_id_from_insta = cl.user_id_from_username(username)
+                        user_details = cl.user_info(user_id_from_insta)
+                        followers = user_details.follower_count
+                        following = user_details.following_count
+                    except:
+                        followers = 0
+                        following = 0
+                    
+                    cursor.execute("INSERT OR REPLACE INTO sessions (user_id, username, full_name, followers, following, session_id, added_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                 (user_id, username, full_name, followers, following, new_sid, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                    conn.commit()
+                    cursor.execute("UPDATE users SET total_nodes = total_nodes + 1 WHERE id = ?", (user_id,))
+                    conn.commit()
+                    message = f"Node @{username} registered!"
+                    log_event(f"User {session['username']} added node @{username}", "success")
+                except Exception as e:
+                    message = f"Registration failed: {str(e)[:50]}"
+            
+            elif action_type == "update_live_target":
+                new_tgt = request.form.get("new_target_name", "").strip()
+                if new_tgt:
+                    for uname in user_nodes:
+                        user_stats_key = f"{user_id}_{uname}"
+                        dynamic_targets[user_stats_key] = new_tgt
+                    message = f"Target switched to: '{new_tgt}'"
+            
+            elif action_type == "start_spam":
+                target_name = request.form.get("target_name")
+                target_scope = request.form.get("target_scope")
+                single_gc_input = request.form.get("single_gc_input", "").strip()
+                spam_option = request.form.get("spam_option")
+                custom_text = request.form.get("custom_text", "").strip()
+                selected_nodes = request.form.getlist("selected_nodes")
+                custom_delay = float(request.form.get("custom_delay", 3.5) or 3.5)
                 
-                cursor.execute("""
-                    INSERT OR REPLACE INTO sessions (user_id, username, full_name, followers, following, session_id, added_at) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (user_id, username, full_name, followers, following, new_sid, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-                conn.commit()
-                
-                cursor.execute("UPDATE users SET total_nodes = total_nodes + 1 WHERE id = ?", (user_id,))
-                conn.commit()
-                
-                message = f"Node @{username} registered!"
-                log_event(f"User {session['username']} added node @{username}", "success")
-            except Exception as e:
-                message = f"Registration failed: {e}"
-        
-        elif action_type == "update_live_target":
-            new_tgt = request.form.get("new_target_name", "").strip()
-            if new_tgt:
+                if not selected_nodes:
+                    message = "Select at least one node!"
+                else:
+                    selected_list = SIREN_LIST_1
+                    if spam_option == "opt2": selected_list = SIREN_LIST_2
+                    elif spam_option == "opt3": selected_list = SIREN_LIST_3
+                    elif spam_option == "opt4": selected_list = SIREN_LIST_4
+                    elif spam_option == "opt_custom": 
+                        selected_list = [line.strip() for line in custom_text.split('\n') if line.strip()] if custom_text else SIREN_LIST_1
+                    
+                    for uname in selected_nodes:
+                        cursor.execute("SELECT session_id FROM sessions WHERE username = ? AND user_id = ?", (uname, user_id))
+                        row = cursor.fetchone()
+                        if row:
+                            sid = row[0]
+                            module_key = f"spam_{user_id}_{uname}"
+                            active_spam_threads[module_key] = True
+                            t = threading.Thread(target=run_spam_worker, args=(sid, target_name, None, selected_list, target_scope, single_gc_input, custom_delay, module_key, uname, user_id))
+                            t.daemon = True
+                            t.start()
+                    message = f"Campaign started for '{target_name}'"
+            
+            elif action_type == "stop_spam":
                 for uname in user_nodes:
-                    user_stats_key = f"{user_id}_{uname}"
-                    dynamic_targets[user_stats_key] = new_tgt
-                message = f"Target switched to: '{new_tgt}'"
-                log_event(f"User {session['username']} switched target to {new_tgt}", "success")
-            else:
-                message = "Error: Target cannot be empty!"
-        
-        elif action_type == "start_spam":
-            target_name = request.form.get("target_name")
-            target_scope = request.form.get("target_scope")
-            single_gc_input = request.form.get("single_gc_input", "").strip()
-            spam_option = request.form.get("spam_option")
-            custom_text = request.form.get("custom_text", "").strip()
-            selected_nodes = request.form.getlist("selected_nodes")
+                    active_spam_threads[f"spam_{user_id}_{uname}"] = False
+                message = "Stopped all threads"
             
-            try:
-                custom_delay = float(request.form.get("custom_delay", 3.5))
-            except:
-                custom_delay = 3.5
-            
-            if not selected_nodes:
-                message = "Error: Select at least one node!"
-            else:
-                selected_list = SIREN_LIST_1
-                if spam_option == "opt2": selected_list = SIREN_LIST_2
-                elif spam_option == "opt3": selected_list = SIREN_LIST_3
-                elif spam_option == "opt4": selected_list = SIREN_LIST_4
-                elif spam_option == "opt_custom": 
-                    selected_list = [line.strip() for line in custom_text.split('\n') if line.strip()] if custom_text else SIREN_LIST_1
-                
-                for uname in selected_nodes:
-                    cursor.execute("SELECT session_id FROM sessions WHERE username = ? AND user_id = ?", (uname, user_id))
-                    row = cursor.fetchone()
-                    if row:
-                        sid = row[0]
-                        module_key = f"spam_{user_id}_{uname}"
-                        active_spam_threads[module_key] = True
-                        
-                        t = threading.Thread(
-                            target=run_spam_worker,
-                            args=(sid, target_name, None, selected_list, target_scope, single_gc_input, custom_delay, module_key, uname, user_id)
-                        )
-                        t.daemon = True
-                        t.start()
-                        log_event(f"User {session['username']} started spam on {uname}", "info")
-                
-                message = f"Campaign started for '{target_name}'"
-        
-        elif action_type == "stop_spam":
-            for uname in user_nodes:
-                active_spam_threads[f"spam_{user_id}_{uname}"] = False
-            message = "Stopped all threads"
-            log_event(f"User {session['username']} stopped spam", "warning")
-        
-        elif action_type == "remove_node":
-            node_username = request.form.get("node_username")
-            cursor.execute("DELETE FROM sessions WHERE username = ? AND user_id = ?", (node_username, user_id))
-            conn.commit()
-            message = f"Removed @{node_username}"
-            log_event(f"User {session['username']} removed node @{node_username}", "warning")
-        
-        elif action_type == "create_client" and is_owner:
-            client_user = request.form.get("client_username", "").strip()
-            client_pass = request.form.get("client_password", "").strip()
-            if client_user and client_pass:
-                hashed = generate_password_hash(client_pass)
-                cursor.execute("INSERT INTO users (username, password, is_owner, created_by, created_at) VALUES (?, ?, ?, ?, ?)",
-                             (client_user, hashed, 0, session['username'], datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            elif action_type == "remove_node":
+                node_username = request.form.get("node_username")
+                cursor.execute("DELETE FROM sessions WHERE username = ? AND user_id = ?", (node_username, user_id))
                 conn.commit()
-                message = f"Client @{client_user} created!"
-                log_event(f"Owner created client @{client_user}", "success")
+                message = f"Removed @{node_username}"
+            
+            elif action_type == "create_client" and is_owner:
+                client_user = request.form.get("client_username", "").strip()
+                client_pass = request.form.get("client_password", "").strip()
+                if client_user and client_pass:
+                    hashed = generate_password_hash(client_pass)
+                    cursor.execute("INSERT INTO users (username, password, is_owner, created_by, created_at) VALUES (?, ?, ?, ?, ?)",
+                                 (client_user, hashed, 0, session['username'], datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                    conn.commit()
+                    message = f"Client @{client_user} created!"
+            
+            elif action_type == "delete_client" and is_owner:
+                client_id = request.form.get("client_id")
+                cursor.execute("DELETE FROM users WHERE id = ? AND is_owner = 0", (client_id,))
+                conn.commit()
+                message = "Client deleted!"
         
-        elif action_type == "delete_client" and is_owner:
-            client_id = request.form.get("client_id")
-            cursor.execute("DELETE FROM users WHERE id = ? AND is_owner = 0", (client_id,))
-            conn.commit()
-            message = "Client deleted!"
-            log_event(f"Owner deleted client ID {client_id}", "warning")
-    
-    cursor.execute("SELECT COUNT(*) FROM sessions WHERE user_id = ?", (user_id,))
-    total_nodes = cursor.fetchone()[0] or 0
-    
-    total_sent = 0
-    total_failed = 0
-    active_count = 0
-    
-    for uname in user_nodes:
-        stats_key = f"{user_id}_{uname}"
-        stats = account_stats.get(stats_key, {})
-        total_sent += stats.get("sent", 0)
-        total_failed += stats.get("failed", 0)
-        if active_spam_threads.get(f"spam_{user_id}_{uname}", False):
-            active_count += 1
-    
-    conn.close()
-    
-    uptime_seconds = int(time.time() - app_start_time)
-    return render_template_string(DASHBOARD_HTML, 
-                                 active_tab="dashboard",
-                                 message=message,
-                                 uptime_seconds=uptime_seconds,
-                                 all_nodes=user_nodes,
-                                 stats={"nodes": total_nodes, "sent": total_sent, "failed": total_failed, "active": active_count})
+        cursor.execute("SELECT COUNT(*) FROM sessions WHERE user_id = ?", (user_id,))
+        total_nodes = cursor.fetchone()[0] or 0
+        
+        total_sent = 0
+        total_failed = 0
+        active_count = 0
+        for uname in user_nodes:
+            stats_key = f"{user_id}_{uname}"
+            stats = account_stats.get(stats_key, {})
+            total_sent += stats.get("sent", 0)
+            total_failed += stats.get("failed", 0)
+            if active_spam_threads.get(f"spam_{user_id}_{uname}", False):
+                active_count += 1
+        
+        conn.close()
+        
+        uptime_seconds = int(time.time() - app_start_time)
+        return render_template_string(DASHBOARD_HTML, active_tab="dashboard", message=message, uptime_seconds=uptime_seconds, all_nodes=user_nodes, stats={"nodes": total_nodes, "sent": total_sent, "failed": total_failed, "active": active_count})
+    except Exception as e:
+        return f"Error: {str(e)}", 500
 
 @app.route("/nodes")
 def nodes():
     if "user_id" not in session:
         return redirect(url_for("login"))
-    
-    user_id = session["user_id"]
-    conn = sqlite3.connect('panel_users.db')
-    cursor = conn.cursor()
-    cursor.execute("SELECT username, full_name, followers, following FROM sessions WHERE user_id = ?", (user_id,))
-    nodes_data = cursor.fetchall()
-    conn.close()
-    
-    nodes_list = []
-    for username, full_name, followers, following in nodes_data:
-        stats_key = f"{user_id}_{username}"
-        stats = account_stats.get(stats_key, {})
-        nodes_list.append({
-            "username": username,
-            "full_name": full_name,
-            "followers": followers,
-            "following": following,
-            "sent": stats.get("sent", 0),
-            "failed": stats.get("failed", 0),
-            "gcs": stats.get("gcs_count", 0),
-            "active": active_spam_threads.get(f"spam_{user_id}_{username}", False)
-        })
-    
-    uptime_seconds = int(time.time() - app_start_time)
-    return render_template_string(NODES_HTML, active_tab="nodes", nodes=nodes_list, uptime_seconds=uptime_seconds)
+    try:
+        user_id = session["user_id"]
+        conn = sqlite3.connect('panel_users.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT username, full_name, followers, following FROM sessions WHERE user_id = ?", (user_id,))
+        nodes_data = cursor.fetchall()
+        conn.close()
+        
+        nodes_list = []
+        for username, full_name, followers, following in nodes_data:
+            stats_key = f"{user_id}_{username}"
+            stats = account_stats.get(stats_key, {})
+            nodes_list.append({"username": username, "full_name": full_name, "followers": followers, "following": following, "sent": stats.get("sent", 0), "failed": stats.get("failed", 0), "gcs": stats.get("gcs_count", 0), "active": active_spam_threads.get(f"spam_{user_id}_{username}", False)})
+        
+        uptime_seconds = int(time.time() - app_start_time)
+        return render_template_string(NODES_HTML, active_tab="nodes", nodes=nodes_list, uptime_seconds=uptime_seconds)
+    except Exception as e:
+        return f"Error: {str(e)}", 500
 
 @app.route("/clients")
 def clients():
     if "user_id" not in session or not session.get("is_owner"):
         return redirect(url_for("dashboard"))
-    
-    conn = sqlite3.connect('panel_users.db')
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, username, created_at, total_nodes, total_spam_sent FROM users WHERE is_owner = 0 ORDER BY id DESC")
-    clients_data = cursor.fetchall()
-    conn.close()
-    
-    clients_list = []
-    for id, username, created_at, total_nodes, total_spam_sent in clients_data:
-        clients_list.append({
-            "id": id,
-            "username": username,
-            "created_at": created_at,
-            "nodes": total_nodes or 0,
-            "total_sent": total_spam_sent or 0
-        })
-    
-    uptime_seconds = int(time.time() - app_start_time)
-    return render_template_string(CLIENTS_HTML, active_tab="clients", clients=clients_list, uptime_seconds=uptime_seconds)
+    try:
+        conn = sqlite3.connect('panel_users.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, created_at, total_nodes, total_spam_sent FROM users WHERE is_owner = 0 ORDER BY id DESC")
+        clients_data = cursor.fetchall()
+        conn.close()
+        
+        clients_list = []
+        for id, username, created_at, total_nodes, total_spam_sent in clients_data:
+            clients_list.append({"id": id, "username": username, "created_at": created_at, "nodes": total_nodes or 0, "total_sent": total_spam_sent or 0})
+        
+        uptime_seconds = int(time.time() - app_start_time)
+        return render_template_string(CLIENTS_HTML, active_tab="clients", clients=clients_list, uptime_seconds=uptime_seconds)
+    except Exception as e:
+        return f"Error: {str(e)}", 500
 
 @app.route("/all_nodes")
 def all_nodes():
     if "user_id" not in session or not session.get("is_owner"):
         return redirect(url_for("dashboard"))
-    
-    conn = sqlite3.connect('panel_users.db')
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT s.username, s.followers, u.username as client_name, s.user_id
-        FROM sessions s
-        JOIN users u ON s.user_id = u.id
-        ORDER BY s.user_id
-    """)
-    all_nodes_data = cursor.fetchall()
-    conn.close()
-    
-    all_nodes_list = []
-    for username, followers, client_name, user_id in all_nodes_data:
-        stats_key = f"{user_id}_{username}"
-        stats = account_stats.get(stats_key, {})
-        all_nodes_list.append({
-            "username": username,
-            "client": client_name,
-            "followers": followers,
-            "sent": stats.get("sent", 0),
-            "failed": stats.get("failed", 0),
-            "gcs": stats.get("gcs_count", 0)
-        })
-    
-    uptime_seconds = int(time.time() - app_start_time)
-    return render_template_string(ALL_NODES_HTML, active_tab="all_nodes", all_nodes=all_nodes_list, uptime_seconds=uptime_seconds)
+    try:
+        conn = sqlite3.connect('panel_users.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT s.username, s.followers, u.username as client_name, s.user_id FROM sessions s JOIN users u ON s.user_id = u.id ORDER BY s.user_id")
+        all_nodes_data = cursor.fetchall()
+        conn.close()
+        
+        all_nodes_list = []
+        for username, followers, client_name, user_id in all_nodes_data:
+            stats_key = f"{user_id}_{username}"
+            stats = account_stats.get(stats_key, {})
+            all_nodes_list.append({"username": username, "client": client_name, "followers": followers, "sent": stats.get("sent", 0), "failed": stats.get("failed", 0), "gcs": stats.get("gcs_count", 0)})
+        
+        uptime_seconds = int(time.time() - app_start_time)
+        return render_template_string(ALL_NODES_HTML, active_tab="all_nodes", all_nodes=all_nodes_list, uptime_seconds=uptime_seconds)
+    except Exception as e:
+        return f"Error: {str(e)}", 500
 
 @app.route("/logout")
 def logout():
