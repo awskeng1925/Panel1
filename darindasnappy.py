@@ -29,7 +29,7 @@ node_quarantine_status = {}
 ADMIN_TG_BOT_TOKEN = "8797760883:AAGk050hX-7IK26deFOfR3e0Gu8KtbtqLC0"
 ADMIN_TG_CHAT_ID = "7420788495"
 
-# ================= SESSION HELPER (FIXED) =================
+# ================= SESSION HELPER (COMPLETE REWRITE) =================
 def get_session_file(username):
     os.makedirs("sessions", exist_ok=True)
     return f"sessions/{username}.pkl"
@@ -48,7 +48,7 @@ def clean_session_id(session_id):
         return session_id.strip()
 
 def login_with_session(session_id, username):
-    """🔥 FIXED: Proper session handling with instagrapi"""
+    """🔥 COMPLETE REWRITE - Proper session handling"""
     cl = Client()
     session_file = get_session_file(username)
     
@@ -63,78 +63,60 @@ def login_with_session(session_id, username):
         except Exception as e:
             print(f"⚠️ [{username}] Saved session failed: {e}")
     
-    # Login with session ID
-    try:
-        sid = clean_session_id(session_id)
-        print(f"🔍 Cleaned SID: {sid[:30]}...")
-        
-        # Method 1: Try login_by_sessionid
+    # Clean session ID
+    sid = clean_session_id(session_id)
+    print(f"🔍 Cleaned SID: {sid[:30]}...")
+    
+    # Try different login methods
+    methods = [
+        lambda: cl.login_by_sessionid(sid),
+        lambda: (cl.set_user_agent("Instagram 269.0.0.18.96 Android"), cl.login_by_sessionid(sid)),
+        lambda: (cl.set_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"), cl.login_by_sessionid(sid)),
+    ]
+    
+    for i, method in enumerate(methods):
         try:
-            cl.login_by_sessionid(sid)
-            print(f"✅ [{username}] Logged in with session ID!")
+            method()
+            print(f"✅ [{username}] Logged in with method {i+1}!")
             with open(session_file, 'wb') as f:
                 f.write(cl.get_settings())
             return cl
-        except Exception as e1:
-            print(f"⚠️ Session ID login failed: {e1}")
-            
-            # Method 2: Try with different user agent
-            try:
-                cl.set_user_agent("Instagram 269.0.0.18.96 Android")
-                cl.login_by_sessionid(sid)
-                with open(session_file, 'wb') as f:
-                    f.write(cl.get_settings())
-                return cl
-            except Exception as e2:
-                print(f"⚠️ Cookie login failed: {e2}")
-                
-                # Method 3: Try with cookies
-                try:
-                    cl.set_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                    cl.login_by_sessionid(sid)
-                    with open(session_file, 'wb') as f:
-                        f.write(cl.get_settings())
-                    return cl
-                except Exception as e3:
-                    raise Exception(f"All login methods failed: {str(e3)[:50]}")
-                
-    except Exception as e:
-        print(f"❌ [{username}] Login failed: {e}")
-        raise e
+        except Exception as e:
+            print(f"⚠️ Method {i+1} failed: {e}")
+            continue
+    
+    raise Exception("All login methods failed")
 
 def refresh_session(cl, username):
-    """🔄 FIXED: Safe session refresh without JSONDecodeError"""
+    """🔄 Safe session refresh"""
     try:
         if cl is None:
             return None
-            
-        # Check if session is still valid
+        
+        # Try to get user_id to check if session is valid
         try:
             cl.get_user_id(cl.username)
             print(f"✅ [{username}] Session is valid")
             return cl
-        except Exception as e:
-            print(f"⚠️ [{username}] Session expired: {e}")
+        except:
+            print(f"⚠️ [{username}] Session expired, reloading...")
             
             # Try to reload from file
             session_file = get_session_file(username)
             if os.path.exists(session_file):
                 try:
-                    # Create new client and load settings
                     new_cl = Client()
                     with open(session_file, 'rb') as f:
                         new_cl.load_settings(f.read())
                     new_cl.login(username, "")
                     print(f"🔄 [{username}] Session refreshed from file!")
                     return new_cl
-                except Exception as e2:
-                    print(f"❌ [{username}] Refresh failed: {e2}")
+                except Exception as e:
+                    print(f"❌ [{username}] Refresh failed: {e}")
                     return None
-            else:
-                print(f"❌ [{username}] No session file found")
-                return None
+            return None
     except Exception as e:
-        print(f"⚠️ Session refresh error: {e}")
+        print(f"⚠️ Refresh error: {e}")
         return None
 
 # ================= DATABASE =================
@@ -232,12 +214,13 @@ def run_name_lock_worker(session_id, raw_gc_input, desired_name, module_key, una
                     
                     time.sleep(10)
                 except Exception as inner_ex:
+                    log_event(f"[{uname}] NC Lock error: {str(inner_ex)[:30]}", "error")
                     time.sleep(5)
         except Exception as e:
             log_event(f"[{uname}] NC Lock Reconnecting...", "error")
             time.sleep(10)
 
-# ================= SPAM WORKER (FIXED) =================
+# ================= SPAM WORKER (COMPLETE REWRITE) =================
 def run_spam_worker(session_id, initial_target, custom_texts_list, template_list, target_scope, target_gc_input, custom_delay, module_key, uname):
     message_cycle = cycle(custom_texts_list if custom_texts_list else template_list)
     if uname not in account_stats:
@@ -248,7 +231,7 @@ def run_spam_worker(session_id, initial_target, custom_texts_list, template_list
 
     cl = None
     reconnect_attempts = 0
-    max_attempts = 5
+    max_attempts = 3
 
     while active_spam_threads.get(module_key, False):
         if node_quarantine_status.get(uname, False):
@@ -258,16 +241,21 @@ def run_spam_worker(session_id, initial_target, custom_texts_list, template_list
         try:
             # 🔥 FIXED: Better session handling
             if cl is None:
-                cl = login_with_session(session_id, uname)
-                if cl is None:
-                    reconnect_attempts += 1
-                    if reconnect_attempts > max_attempts:
-                        log_event(f"[{uname}] Max reconnect attempts reached", "error")
-                        break
-                    log_event(f"[{uname}] Reconnecting... ({reconnect_attempts}/{max_attempts})", "warning")
+                try:
+                    cl = login_with_session(session_id, uname)
+                    if cl is None:
+                        reconnect_attempts += 1
+                        if reconnect_attempts > max_attempts:
+                            log_event(f"[{uname}] Max reconnect attempts reached", "error")
+                            break
+                        log_event(f"[{uname}] Reconnecting... ({reconnect_attempts}/{max_attempts})", "warning")
+                        time.sleep(10)
+                        continue
+                    reconnect_attempts = 0
+                except Exception as e:
+                    log_event(f"[{uname}] Login error: {str(e)[:30]}", "error")
                     time.sleep(10)
                     continue
-                reconnect_attempts = 0
             
             # Check session validity
             try:
@@ -280,36 +268,44 @@ def run_spam_worker(session_id, initial_target, custom_texts_list, template_list
             
             log_event(f"[{uname}] Authenticated & Ready", "success")
             
-            # Fetch threads
-            try:
-                threads = cl.direct_threads(amount=99999)
-                all_gc_ids = []
+            # Fetch threads with retry
+            threads = None
+            for retry in range(3):
+                try:
+                    threads = cl.direct_threads(amount=99999)
+                    break
+                except Exception as e:
+                    log_event(f"[{uname}] Thread fetch retry {retry+1}: {str(e)[:30]}", "warning")
+                    time.sleep(3)
+                    cl = refresh_session(cl, uname)
+                    if cl is None:
+                        break
+            
+            if threads is None:
+                cl = None
+                continue
+            
+            all_gc_ids = []
+            for t in threads:
+                t_id = getattr(t, 'id', None) or getattr(t, 'pk', None)
+                if t_id:
+                    all_gc_ids.append(str(t_id))
+                    
+            with open("link.txt", "w", encoding="utf-8") as f:
                 for t in threads:
                     t_id = getattr(t, 'id', None) or getattr(t, 'pk', None)
-                    if t_id:
-                        all_gc_ids.append(str(t_id))
-                        
-                with open("link.txt", "w", encoding="utf-8") as f:
-                    for t in threads:
-                        t_id = getattr(t, 'id', None) or getattr(t, 'pk', None)
-                        f.write(f"ID: {t_id} | Title: {getattr(t, 'title', 'No Title')}\n")
+                    f.write(f"ID: {t_id} | Title: {getattr(t, 'title', 'No Title')}\n")
+            
+            if target_scope == "single":
+                resolved_gc = resolve_thread_id(cl, target_gc_input)
+                target_threads = [resolved_gc] if resolved_gc else all_gc_ids
+                account_stats[uname]["gcs_count"] = 1
+            else:
+                target_threads = all_gc_ids
+                account_stats[uname]["gcs_count"] = len(all_gc_ids)
                 
-                if target_scope == "single":
-                    resolved_gc = resolve_thread_id(cl, target_gc_input)
-                    target_threads = [resolved_gc] if resolved_gc else all_gc_ids
-                    account_stats[uname]["gcs_count"] = 1
-                else:
-                    target_threads = all_gc_ids
-                    account_stats[uname]["gcs_count"] = len(all_gc_ids)
-                    
-                if not target_threads:
-                    log_event(f"[{uname}] No threads found", "warning")
-                    time.sleep(10)
-                    continue
-
-            except Exception as e:
-                log_event(f"[{uname}] Thread fetch error: {str(e)[:30]}", "error")
-                cl = None
+            if not target_threads:
+                log_event(f"[{uname}] No threads found", "warning")
                 time.sleep(10)
                 continue
 
@@ -819,21 +815,6 @@ def index():
                 log_event(f"Live target dynamically switched to: {new_tgt}", "success")
             else:
                 message = "Error: Target name cannot be empty!"
-
-        elif action_type == "upload_automa_json":
-            file = request.files.get("automa_file")
-            if file and file.filename.endswith('.json'):
-                try:
-                    file_content = file.read().decode('utf-8')
-                    parsed_json = json.loads(file_content)
-                    with open("uploaded_automa_workflow.json", "w", encoding="utf-8") as f:
-                        f.write(json.dumps(parsed_json, indent=4))
-                    message = f"Automa JSON file '{file.filename}' uploaded and parsed successfully!"
-                    log_event(f"Automa workflow uploaded: {file.filename}", "success")
-                except Exception as e:
-                    message = f"Invalid JSON file format: {e}"
-            else:
-                message = "Please upload a valid .json automation file."
 
         elif action_type == "start_nc_lock":
             lock_gc_input = request.form.get("lock_gc_input", "").strip()
