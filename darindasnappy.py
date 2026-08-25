@@ -83,35 +83,65 @@ def init_db():
 
 init_db()
 
-# ================= SESSION HELPER =================
+# ================= SESSION HELPER (FIXED) =================
 def get_session_file(username):
     os.makedirs("sessions", exist_ok=True)
     return f"sessions/{username}.pkl"
+
+def clean_session_id(session_id):
+    """Clean and decode session ID properly"""
+    try:
+        # Remove whitespace
+        sid = session_id.strip()
+        
+        # URL decode if contains %XX
+        if '%' in sid:
+            sid = urllib.parse.unquote(sid)
+        
+        # Remove any non-printable characters
+        sid = ''.join(c for c in sid if c.isprintable())
+        
+        # If it's bytes, decode to string
+        if isinstance(sid, bytes):
+            sid = sid.decode('utf-8', errors='ignore')
+        
+        return sid
+    except Exception as e:
+        print(f"Session cleanup error: {e}")
+        return session_id.strip()
 
 def login_with_session(session_id, username):
     cl = Client()
     session_file = get_session_file(username)
     
+    # Try loading saved session first
     if os.path.exists(session_file):
         try:
             with open(session_file, 'rb') as f:
                 cl.load_settings(f.read())
             cl.login(username, "")
+            print(f"✅ [{username}] Session loaded from file!")
             return cl
         except Exception as e:
-            print(f"Saved session failed: {e}")
+            print(f"⚠️ Saved session failed: {e}")
     
     try:
-        sid = session_id.strip()
-        if '%3A' in sid:
-            sid = urllib.parse.unquote(sid)
+        # Clean the session ID
+        sid = clean_session_id(session_id)
+        print(f"🔍 Cleaned SID: {sid[:50]}...")
         
+        # Method 1: Try login_by_sessionid
         try:
             cl.login_by_sessionid(sid)
+            print(f"✅ [{username}] Logged in with session ID!")
+            # Save session
             with open(session_file, 'wb') as f:
                 f.write(cl.get_settings())
             return cl
         except Exception as e1:
+            print(f"⚠️ Session ID login failed: {e1}")
+            
+            # Method 2: Try with different user agent
             try:
                 cl.set_user_agent("Instagram 269.0.0.18.96 Android")
                 cl.login_by_sessionid(sid)
@@ -119,8 +149,20 @@ def login_with_session(session_id, username):
                     f.write(cl.get_settings())
                 return cl
             except Exception as e2:
-                raise Exception(f"Session login failed: {e2}")
+                print(f"⚠️ Cookie login failed: {e2}")
+                
+                # Method 3: Try with cookies from sessionid
+                try:
+                    cl.set_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                    cl.login_by_sessionid(sid)
+                    with open(session_file, 'wb') as f:
+                        f.write(cl.get_settings())
+                    return cl
+                except Exception as e3:
+                    raise Exception(f"All login methods failed: {str(e3)[:50]}")
+                    
     except Exception as e:
+        print(f"❌ [{username}] Login failed: {e}")
         raise e
 
 def refresh_session(cl, username):
@@ -145,7 +187,7 @@ def refresh_session(cl, username):
         return None
 
 # ================= SPAM LISTS =================
-def repeat_text(text, times=25):
+def repeat_text(text, times=5):
     return "\n\n".join([text] * times)
 
 SIREN_LIST_1 = [
@@ -285,7 +327,7 @@ def run_spam_worker(session_id, initial_target, custom_texts_list, template_list
     if user_stats_key in campaign_info:
         campaign_info[user_stats_key]["active"] = False
 
-# ================= HTML TEMPLATES (FIXED - NO EXTENDS) =================
+# ================= HTML TEMPLATES =================
 LOGIN_HTML = """
 <!DOCTYPE html>
 <html>
@@ -872,7 +914,10 @@ def dashboard():
             if action_type == "add_session":
                 new_sid = request.form.get("new_session_id", "").strip()
                 try:
-                    cl = login_with_session(new_sid, "temp_user")
+                    # Clean session ID first
+                    cleaned_sid = clean_session_id(new_sid)
+                    
+                    cl = login_with_session(cleaned_sid, "temp_user")
                     acc_info = cl.account_info()
                     username = acc_info.username
                     full_name = acc_info.full_name or "N/A"
@@ -887,14 +932,15 @@ def dashboard():
                         following = 0
                     
                     cursor.execute("INSERT OR REPLACE INTO sessions (user_id, username, full_name, followers, following, session_id, added_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                                 (user_id, username, full_name, followers, following, new_sid, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                                 (user_id, username, full_name, followers, following, cleaned_sid, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                     conn.commit()
                     cursor.execute("UPDATE users SET total_nodes = total_nodes + 1 WHERE id = ?", (user_id,))
                     conn.commit()
-                    message = f"Node @{username} registered!"
+                    message = f"✅ Node @{username} registered!"
                     log_event(f"Added node @{username}", "success")
                 except Exception as e:
-                    message = f"Registration failed: {str(e)[:50]}"
+                    message = f"❌ Registration failed: {str(e)[:80]}"
+                    log_event(f"Registration error: {str(e)[:50]}", "error")
             
             elif action_type == "update_live_target":
                 new_tgt = request.form.get("new_target_name", "").strip()
