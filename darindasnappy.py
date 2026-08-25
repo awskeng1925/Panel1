@@ -161,7 +161,7 @@ def refresh_session(cl, username):
         return None
 
 # ================= SPAM LISTS =================
-def repeat_text(text, times=5):
+def repeat_text(text, times=20):
     return "\n\n".join([text] * times)
 
 SIREN_LIST_1 = [
